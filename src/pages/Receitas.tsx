@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Filter, DollarSign } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Button, Card, Modal, Select } from '../components/ui';
+import { Button, Card, Modal, Select, MonthYearPicker } from '../components/ui';
 import { ReceitaForm } from '../components/receitas/ReceitaForm';
 import { receitasService } from '../services/receitasService';
 import type { Receita } from '../types';
@@ -15,6 +15,7 @@ export const Receitas: React.FC = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   // Filtros
+  const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [filterCategoria, setFilterCategoria] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -27,14 +28,18 @@ export const Receitas: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedMonth]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      const filters = {
+        data_inicio: format(startOfMonth(selectedMonth), 'yyyy-MM-dd'),
+        data_fim: format(endOfMonth(selectedMonth), 'yyyy-MM-dd'),
+      };
       const [receitasData, statsData] = await Promise.all([
-        receitasService.getAll(),
-        receitasService.getMonthStats(),
+        receitasService.getWithFilters(filters),
+        receitasService.getMonthStats(selectedMonth),
       ]);
       setReceitas(receitasData);
       setStats(statsData);
@@ -48,7 +53,10 @@ export const Receitas: React.FC = () => {
   const applyFilters = async () => {
     try {
       setLoading(true);
-      const filters: any = {};
+      const filters: any = {
+        data_inicio: format(startOfMonth(selectedMonth), 'yyyy-MM-dd'),
+        data_fim: format(endOfMonth(selectedMonth), 'yyyy-MM-dd'),
+      };
       if (filterCategoria) filters.categoria = filterCategoria;
       if (filterStatus) filters.status_recebimento = filterStatus;
 
@@ -119,23 +127,26 @@ export const Receitas: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Receitas</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Gerencie suas receitas e recebimentos
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Receitas</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Gerencie suas receitas e recebimentos
+            </p>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
+              <Filter className="mr-2 h-5 w-5" />
+              Filtros
+            </Button>
+            <Button onClick={handleCreate}>
+              <Plus className="mr-2 h-5 w-5" />
+              Nova Receita
+            </Button>
+          </div>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
-            <Filter className="mr-2 h-5 w-5" />
-            Filtros
-          </Button>
-          <Button onClick={handleCreate}>
-            <Plus className="mr-2 h-5 w-5" />
-            Nova Receita
-          </Button>
-        </div>
+        <MonthYearPicker value={selectedMonth} onChange={setSelectedMonth} />
       </div>
 
       {/* Stats Cards */}

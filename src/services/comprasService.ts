@@ -147,14 +147,14 @@ export const comprasService = {
   },
 
   // Estatísticas do mês atual
-  async getMonthStats(): Promise<{
+  async getMonthStats(mes?: Date): Promise<{
     totalGasto: number;
     numeroCompras: number;
     contasAPagar: number;
   }> {
-    const now = new Date();
-    const inicio = format(startOfMonth(now), 'yyyy-MM-dd');
-    const fim = format(endOfMonth(now), 'yyyy-MM-dd');
+    const dataReferencia = mes || new Date();
+    const inicio = format(startOfMonth(dataReferencia), 'yyyy-MM-dd');
+    const fim = format(endOfMonth(dataReferencia), 'yyyy-MM-dd');
 
     const { data, error } = await supabase
       .from('compras')
@@ -172,10 +172,10 @@ export const comprasService = {
   },
 
   // Gastos por fornecedor no mês
-  async getGastosPorFornecedor(): Promise<Array<{ fornecedor: string; valor: number }>> {
-    const now = new Date();
-    const inicio = format(startOfMonth(now), 'yyyy-MM-dd');
-    const fim = format(endOfMonth(now), 'yyyy-MM-dd');
+  async getGastosPorFornecedor(mes?: Date): Promise<Array<{ fornecedor: string; valor: number }>> {
+    const dataReferencia = mes || new Date();
+    const inicio = format(startOfMonth(dataReferencia), 'yyyy-MM-dd');
+    const fim = format(endOfMonth(dataReferencia), 'yyyy-MM-dd');
 
     const { data, error } = await supabase
       .from('compras')

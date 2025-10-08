@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, ShoppingBag, Users, AlertCircle, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format } from 'date-fns';
+import { format, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Card } from '../components/ui';
+import { Card, MonthYearPicker } from '../components/ui';
 import { comprasService } from '../services/comprasService';
 import { fornecedoresService } from '../services/fornecedoresService';
 import { receitasService } from '../services/receitasService';
@@ -12,6 +12,7 @@ import type { Compra, Receita } from '../types';
 
 export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [stats, setStats] = useState({
     // Receitas
     receitasRecebidas: 0,
@@ -35,7 +36,7 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [selectedMonth]);
 
   const loadDashboardData = async () => {
     try {
@@ -48,10 +49,10 @@ export const Dashboard: React.FC = () => {
         proximas,
         fornecedoresCount,
       ] = await Promise.all([
-        comprasService.getMonthStats(),
-        receitasService.getMonthStats(),
+        comprasService.getMonthStats(selectedMonth),
+        receitasService.getMonthStats(selectedMonth),
         despesasFixasService.getTotalMensal(),
-        comprasService.getGastosPorFornecedor(),
+        comprasService.getGastosPorFornecedor(selectedMonth),
         comprasService.getProximasVencimento(7),
         fornecedoresService.countAtivos(),
       ]);
@@ -116,11 +117,14 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Resumo financeiro completo do mês atual
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Resumo financeiro completo
+          </p>
+        </div>
+        <MonthYearPicker value={selectedMonth} onChange={setSelectedMonth} />
       </div>
 
       {/* Stats Cards */}
@@ -139,7 +143,9 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center mt-4 text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Mês atual</span>
+            <span className="text-gray-600 dark:text-gray-400">
+              {format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}
+            </span>
           </div>
         </Card>
 
@@ -255,7 +261,7 @@ export const Dashboard: React.FC = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Receitas vs Despesas */}
-        <Card title="Receitas vs Despesas (Mês Atual)">
+        <Card title={`Receitas vs Despesas (${format(selectedMonth, "MMM/yyyy", { locale: ptBR })})`}>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
               data={[
@@ -324,7 +330,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Gastos por Fornecedor - Barras */}
         {gastosPorFornecedor.length > 0 && (
-          <Card title="Top Fornecedores (Mês Atual)">
+          <Card title={`Top Fornecedores (${format(selectedMonth, "MMM/yyyy", { locale: ptBR })})`}>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={gastosPorFornecedor.slice(0, 5)}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
@@ -352,7 +358,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Análise Financeira */}
-      <Card title="📊 Análise Financeira do Mês">
+      <Card title={`📊 Análise Financeira - ${format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}`}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Status Financeiro</p>
