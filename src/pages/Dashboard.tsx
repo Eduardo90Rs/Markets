@@ -1,23 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, ShoppingBag, Users, AlertCircle, TrendingUp } from 'lucide-react';
+import { DollarSign, ShoppingBag, Users, AlertCircle, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card } from '../components/ui';
 import { comprasService } from '../services/comprasService';
 import { fornecedoresService } from '../services/fornecedoresService';
-import type { Compra } from '../types';
+import { receitasService } from '../services/receitasService';
+import { despesasFixasService } from '../services/despesasFixasService';
+import type { Compra, Receita } from '../types';
 
 export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    totalGasto: 0,
+    // Receitas
+    receitasRecebidas: 0,
+    receitasPendentes: 0,
+    totalReceitas: 0,
+    // Despesas
+    totalCompras: 0,
     numeroCompras: 0,
+    despesasFixas: 0,
+    totalDespesas: 0,
+    // Resultado
+    lucroLiquido: 0,
+    margemLucro: 0,
+    // Outros
     contasAPagar: 0,
     fornecedoresAtivos: 0,
   });
   const [gastosPorFornecedor, setGastosPorFornecedor] = useState<Array<{ fornecedor: string; valor: number }>>([]);
   const [proximasVencimento, setProximasVencimento] = useState<Compra[]>([]);
+  const [receitasPendentes, setReceitasPendentes] = useState<Receita[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -26,19 +40,55 @@ export const Dashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [monthStats, gastos, proximas, fornecedoresCount] = await Promise.all([
+      const [
+        comprasStats,
+        receitasStats,
+        despesasFixasTotal,
+        gastos,
+        proximas,
+        fornecedoresCount,
+      ] = await Promise.all([
         comprasService.getMonthStats(),
+        receitasService.getMonthStats(),
+        despesasFixasService.getTotalMensal(),
         comprasService.getGastosPorFornecedor(),
         comprasService.getProximasVencimento(7),
         fornecedoresService.countAtivos(),
       ]);
 
+      // Calcular totais
+      const totalDespesas = comprasStats.totalGasto + despesasFixasTotal;
+      const lucroLiquido = receitasStats.totalRecebido - totalDespesas;
+      const margemLucro = receitasStats.totalRecebido > 0
+        ? (lucroLiquido / receitasStats.totalRecebido) * 100
+        : 0;
+
       setStats({
-        ...monthStats,
+        // Receitas
+        receitasRecebidas: receitasStats.totalRecebido,
+        receitasPendentes: receitasStats.totalPendente,
+        totalReceitas: receitasStats.totalRecebido + receitasStats.totalPendente,
+        // Despesas
+        totalCompras: comprasStats.totalGasto,
+        numeroCompras: comprasStats.numeroCompras,
+        despesasFixas: despesasFixasTotal,
+        totalDespesas,
+        // Resultado
+        lucroLiquido,
+        margemLucro,
+        // Outros
+        contasAPagar: comprasStats.contasAPagar,
         fornecedoresAtivos: fornecedoresCount,
       });
+
       setGastosPorFornecedor(gastos);
       setProximasVencimento(proximas);
+
+      // Buscar receitas pendentes
+      const receitasPendentesData = await receitasService.getWithFilters({
+        status_recebimento: 'pendente',
+      });
+      setReceitasPendentes(receitasPendentesData.slice(0, 5)); // Apenas as 5 primeiras
     } catch (error) {
       console.error('Erro ao carregar dados do dashboard:', error);
     } finally {
@@ -69,53 +119,37 @@ export const Dashboard: React.FC = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Visão geral do mês atual
+          Resumo financeiro completo do mês atual
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Receitas Recebidas */}
         <Card className="!p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Gasto</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {formatCurrency(stats.totalGasto)}
-              </p>
-            </div>
-            <div className="bg-primary-100 dark:bg-primary-900/30 p-3 rounded-full">
-              <DollarSign className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
-          <div className="flex items-center mt-4 text-sm">
-            <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-            <span className="text-green-600 dark:text-green-400">Mês atual</span>
-          </div>
-        </Card>
-
-        <Card className="!p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Nº de Compras</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {stats.numeroCompras}
+              <p className="text-sm text-gray-600 dark:text-gray-400">Receitas Recebidas</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                {formatCurrency(stats.receitasRecebidas)}
               </p>
             </div>
             <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
-              <ShoppingBag className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
           </div>
           <div className="flex items-center mt-4 text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Este mês</span>
+            <span className="text-gray-600 dark:text-gray-400">Mês atual</span>
           </div>
         </Card>
 
+        {/* Receitas Pendentes */}
         <Card className="!p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Contas a Pagar</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {stats.contasAPagar}
+              <p className="text-sm text-gray-600 dark:text-gray-400">Receitas Pendentes</p>
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
+                {formatCurrency(stats.receitasPendentes)}
               </p>
             </div>
             <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-full">
@@ -123,35 +157,176 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center mt-4 text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Pendentes</span>
+            <span className="text-gray-600 dark:text-gray-400">A receber</span>
           </div>
         </Card>
 
+        {/* Total Receitas */}
         <Card className="!p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Fornecedores</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Receitas</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {stats.fornecedoresAtivos}
+                {formatCurrency(stats.totalReceitas)}
               </p>
             </div>
-            <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-full">
-              <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full">
+              <DollarSign className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
           <div className="flex items-center mt-4 text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Ativos</span>
+            <span className="text-gray-600 dark:text-gray-400">Recebido + Pendente</span>
+          </div>
+        </Card>
+
+        {/* Total Compras */}
+        <Card className="!p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Compras</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                {formatCurrency(stats.totalCompras)}
+              </p>
+            </div>
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full">
+              <ShoppingBag className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+          <div className="flex items-center mt-4 text-sm">
+            <span className="text-gray-600 dark:text-gray-400">{stats.numeroCompras} compras</span>
+          </div>
+        </Card>
+
+        {/* Despesas Fixas */}
+        <Card className="!p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Despesas Fixas</p>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
+                {formatCurrency(stats.despesasFixas)}
+              </p>
+            </div>
+            <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-full">
+              <Calendar className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+            </div>
+          </div>
+          <div className="flex items-center mt-4 text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Mensais</span>
+          </div>
+        </Card>
+
+        {/* Lucro Líquido */}
+        <Card className="!p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Lucro Líquido</p>
+              <p className={`text-2xl font-bold mt-1 ${
+                stats.lucroLiquido >= 0
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                {formatCurrency(stats.lucroLiquido)}
+              </p>
+            </div>
+            <div className={`p-3 rounded-full ${
+              stats.lucroLiquido >= 0
+                ? 'bg-green-100 dark:bg-green-900/30'
+                : 'bg-red-100 dark:bg-red-900/30'
+            }`}>
+              {stats.lucroLiquido >= 0 ? (
+                <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+              ) : (
+                <TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />
+              )}
+            </div>
+          </div>
+          <div className="flex items-center mt-4 text-sm">
+            <span className={`font-medium ${
+              stats.lucroLiquido >= 0
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-red-600 dark:text-red-400'
+            }`}>
+              Margem: {stats.margemLucro.toFixed(1)}%
+            </span>
           </div>
         </Card>
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Receitas vs Despesas */}
+        <Card title="Receitas vs Despesas (Mês Atual)">
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart
+              data={[
+                {
+                  name: 'Financeiro',
+                  Receitas: stats.receitasRecebidas,
+                  Compras: stats.totalCompras,
+                  'Despesas Fixas': stats.despesasFixas,
+                  Lucro: stats.lucroLiquido,
+                }
+              ]}
+            >
+              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+              <XAxis
+                dataKey="name"
+                className="text-xs fill-gray-600 dark:fill-gray-400"
+              />
+              <YAxis className="text-xs fill-gray-600 dark:fill-gray-400" />
+              <Tooltip
+                formatter={(value: number) => formatCurrency(value)}
+                contentStyle={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                }}
+              />
+              <Legend />
+              <Bar dataKey="Receitas" fill="#10b981" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="Compras" fill="#0ea5e9" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="Despesas Fixas" fill="#f59e0b" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="Lucro" fill={stats.lucroLiquido >= 0 ? '#10b981' : '#ef4444'} radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+
+        {/* Distribuição de Despesas - Pizza */}
+        <Card title="Distribuição de Despesas">
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={[
+                  { name: 'Compras', value: stats.totalCompras },
+                  { name: 'Despesas Fixas', value: stats.despesasFixas },
+                ]}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
+              >
+                <Cell fill="#0ea5e9" />
+                <Cell fill="#f59e0b" />
+              </Pie>
+              <Tooltip
+                formatter={(value: number) => formatCurrency(value)}
+                contentStyle={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </Card>
+
         {/* Gastos por Fornecedor - Barras */}
-        <Card title="Gastos por Fornecedor (Mês Atual)">
-          {gastosPorFornecedor.length > 0 ? (
+        {gastosPorFornecedor.length > 0 && (
+          <Card title="Top Fornecedores (Mês Atual)">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={gastosPorFornecedor}>
+              <BarChart data={gastosPorFornecedor.slice(0, 5)}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
                 <XAxis
                   dataKey="fornecedor"
@@ -169,52 +344,110 @@ export const Dashboard: React.FC = () => {
                     borderRadius: '8px',
                   }}
                 />
-                <Bar dataKey="valor" fill="#0ea5e9" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="valor" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
-              Nenhum dado disponível
-            </div>
-          )}
-        </Card>
-
-        {/* Gastos por Fornecedor - Pizza */}
-        <Card title="Distribuição de Gastos">
-          {gastosPorFornecedor.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={gastosPorFornecedor}
-                  dataKey="valor"
-                  nameKey="fornecedor"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label={(entry) => `${entry.fornecedor}: ${formatCurrency(entry.valor)}`}
-                  labelLine={false}
-                >
-                  {gastosPorFornecedor.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
-              Nenhum dado disponível
-            </div>
-          )}
-        </Card>
+          </Card>
+        )}
       </div>
+
+      {/* Análise Financeira */}
+      <Card title="📊 Análise Financeira do Mês">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Status Financeiro</p>
+            <p className={`text-xl font-bold ${
+              stats.lucroLiquido >= 0
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-red-600 dark:text-red-400'
+            }`}>
+              {stats.lucroLiquido >= 0 ? '✓ Lucro' : '✗ Prejuízo'}
+            </p>
+          </div>
+
+          <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Total de Despesas</p>
+            <p className="text-xl font-bold text-red-600 dark:text-red-400">
+              {formatCurrency(stats.totalDespesas)}
+            </p>
+          </div>
+
+          <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Ticket Médio</p>
+            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+              {stats.numeroCompras > 0
+                ? formatCurrency(stats.totalCompras / stats.numeroCompras)
+                : formatCurrency(0)}
+            </p>
+          </div>
+
+          <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">% Despesas/Receita</p>
+            <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
+              {stats.receitasRecebidas > 0
+                ? `${((stats.totalDespesas / stats.receitasRecebidas) * 100).toFixed(1)}%`
+                : '0.0%'}
+            </p>
+          </div>
+        </div>
+
+        {/* Barra de Progresso */}
+        <div className="mt-6">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Receitas Recebidas vs Despesas
+            </span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {stats.receitasRecebidas > 0
+                ? `${((stats.totalDespesas / stats.receitasRecebidas) * 100).toFixed(0)}%`
+                : '0%'} de despesas
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
+            <div
+              className={`h-4 rounded-full transition-all ${
+                stats.totalDespesas > stats.receitasRecebidas
+                  ? 'bg-red-600 dark:bg-red-400'
+                  : 'bg-green-600 dark:bg-green-400'
+              }`}
+              style={{
+                width: `${Math.min(
+                  stats.receitasRecebidas > 0
+                    ? (stats.totalDespesas / stats.receitasRecebidas) * 100
+                    : 0,
+                  100
+                )}%`,
+              }}
+            ></div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Receitas Pendentes */}
+      {receitasPendentes.length > 0 && (
+        <Card title="💰 Receitas Pendentes Importantes">
+          <div className="space-y-3">
+            {receitasPendentes.map((receita) => (
+              <div
+                key={receita.id}
+                className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+              >
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {receita.descricao}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Data: {format(new Date(receita.data), "dd 'de' MMMM", { locale: ptBR })} • {receita.categoria}
+                  </p>
+                </div>
+                <p className="text-lg font-bold text-blue-700 dark:text-blue-400">
+                  {formatCurrency(receita.valor)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Alertas de Vencimento */}
       {proximasVencimento.length > 0 && (
