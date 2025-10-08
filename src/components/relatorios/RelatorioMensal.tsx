@@ -5,13 +5,17 @@ import {
   DollarSign,
   ShoppingBag,
   Calendar,
+  FileDown,
+  FileSpreadsheet,
 } from 'lucide-react';
-import { Card, Select } from '../ui';
+import { Card, Select, Button } from '../ui';
 import { receitasService } from '../../services/receitasService';
 import { comprasService } from '../../services/comprasService';
 import { despesasFixasService } from '../../services/despesasFixasService';
+import { exportRelatorioMensalToPDF, exportRelatorioMensalToExcel } from '../../utils/exportUtils';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { Receita, Compra, DespesaFixa } from '../../types';
 
 interface RelatorioMensalProps {
   mes?: Date;
@@ -36,6 +40,17 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
     },
     lucro: 0,
     margemLucro: 0,
+  });
+
+  // Dados completos para exportação
+  const [dadosCompletos, setDadosCompletos] = useState<{
+    receitas: Receita[];
+    compras: Compra[];
+    despesasFixas: DespesaFixa[];
+  }>({
+    receitas: [],
+    compras: [],
+    despesasFixas: [],
   });
 
   useEffect(() => {
@@ -72,6 +87,7 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
       const totalCompras = comprasData.reduce((sum, c) => sum + c.valor_total, 0);
 
       // Buscar despesas fixas
+      const despesasFixasData = await despesasFixasService.getAtivas();
       const totalDespesasFixas = await despesasFixasService.getTotalMensal();
 
       // Calcular lucro e margem
@@ -94,6 +110,13 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
         },
         lucro,
         margemLucro,
+      });
+
+      // Guardar dados completos para exportação
+      setDadosCompletos({
+        receitas: receitasData,
+        compras: comprasData,
+        despesasFixas: despesasFixasData,
       });
     } catch (error) {
       console.error('Erro ao carregar relatório:', error);
@@ -130,6 +153,52 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
   const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const [year, month] = e.target.value.split('-');
     setSelectedMonth(new Date(parseInt(year), parseInt(month) - 1));
+  };
+
+  const handleExportPDF = () => {
+    exportRelatorioMensalToPDF({
+      mes: selectedMonth,
+      receitas: {
+        total: relatorio.receitas.total,
+        recebido: relatorio.receitas.recebido,
+        pendente: relatorio.receitas.pendente,
+        dados: dadosCompletos.receitas,
+      },
+      compras: {
+        total: relatorio.compras.total,
+        numero: relatorio.compras.numero,
+        dados: dadosCompletos.compras,
+      },
+      despesasFixas: {
+        total: relatorio.despesasFixas.total,
+        dados: dadosCompletos.despesasFixas,
+      },
+      lucro: relatorio.lucro,
+      margemLucro: relatorio.margemLucro,
+    });
+  };
+
+  const handleExportExcel = () => {
+    exportRelatorioMensalToExcel({
+      mes: selectedMonth,
+      receitas: {
+        total: relatorio.receitas.total,
+        recebido: relatorio.receitas.recebido,
+        pendente: relatorio.receitas.pendente,
+        dados: dadosCompletos.receitas,
+      },
+      compras: {
+        total: relatorio.compras.total,
+        numero: relatorio.compras.numero,
+        dados: dadosCompletos.compras,
+      },
+      despesasFixas: {
+        total: relatorio.despesasFixas.total,
+        dados: dadosCompletos.despesasFixas,
+      },
+      lucro: relatorio.lucro,
+      margemLucro: relatorio.margemLucro,
+    });
   };
 
   if (loading) {
@@ -391,6 +460,30 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
           </div>
         </Card>
       </div>
+
+      {/* Seção de Exportação */}
+      <Card>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Exportar Relatório Mensal
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Baixe o relatório completo em PDF ou Excel
+            </p>
+          </div>
+          <div className="flex space-x-3">
+            <Button variant="secondary" onClick={handleExportPDF}>
+              <FileDown className="mr-2 h-5 w-5" />
+              Exportar PDF
+            </Button>
+            <Button variant="secondary" onClick={handleExportExcel}>
+              <FileSpreadsheet className="mr-2 h-5 w-5" />
+              Exportar Excel
+            </Button>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 };
