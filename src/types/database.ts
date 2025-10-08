@@ -176,6 +176,59 @@ export interface Database {
           user_id?: string
         }
       }
+      despesas: {
+        Row: {
+          id: string
+          user_id: string
+          tipo: 'fixa' | 'geral'
+          descricao: string
+          valor: number
+          categoria: string
+          status_pagamento: 'pago' | 'pendente'
+          observacoes: string | null
+          data: string | null
+          mes_referencia: string | null
+          dia_vencimento: number | null
+          ativa: boolean
+          despesa_origem_id: string | null
+          criado_em: string
+          atualizado_em: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tipo: 'fixa' | 'geral'
+          descricao: string
+          valor: number
+          categoria: string
+          status_pagamento?: 'pago' | 'pendente'
+          observacoes?: string | null
+          data?: string | null
+          mes_referencia?: string | null
+          dia_vencimento?: number | null
+          ativa?: boolean
+          despesa_origem_id?: string | null
+          criado_em?: string
+          atualizado_em?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          tipo?: 'fixa' | 'geral'
+          descricao?: string
+          valor?: number
+          categoria?: string
+          status_pagamento?: 'pago' | 'pendente'
+          observacoes?: string | null
+          data?: string | null
+          mes_referencia?: string | null
+          dia_vencimento?: number | null
+          ativa?: boolean
+          despesa_origem_id?: string | null
+          criado_em?: string
+          atualizado_em?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

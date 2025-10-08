@@ -11,11 +11,11 @@ import {
 import { Card, Button, MonthYearPicker } from '../ui';
 import { receitasService } from '../../services/receitasService';
 import { comprasService } from '../../services/comprasService';
-import { despesasFixasService } from '../../services/despesasFixasService';
+import { despesasService } from '../../services/despesasService';
 import { exportRelatorioMensalToPDF, exportRelatorioMensalToExcel } from '../../utils/exportUtils';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Receita, Compra, DespesaFixa } from '../../types';
+import type { Receita, Compra, Despesa } from '../../types';
 
 interface RelatorioMensalProps {
   mes?: Date;
@@ -35,8 +35,10 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
       total: 0,
       numero: 0,
     },
-    despesasFixas: {
+    despesas: {
       total: 0,
+      fixas: 0,
+      gerais: 0,
     },
     lucro: 0,
     margemLucro: 0,
@@ -46,11 +48,11 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
   const [dadosCompletos, setDadosCompletos] = useState<{
     receitas: Receita[];
     compras: Compra[];
-    despesasFixas: DespesaFixa[];
+    despesas: Despesa[];
   }>({
     receitas: [],
     compras: [],
-    despesasFixas: [],
+    despesas: [],
   });
 
   useEffect(() => {
@@ -86,12 +88,12 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
 
       const totalCompras = comprasData.reduce((sum, c) => sum + c.valor_total, 0);
 
-      // Buscar despesas fixas
-      const despesasFixasData = await despesasFixasService.getAtivas();
-      const totalDespesasFixas = await despesasFixasService.getTotalMensal();
+      // Buscar despesas (fixas + gerais)
+      const despesasData = await despesasService.getDespesasPorMes(selectedMonth);
+      const resumoDespesas = await despesasService.getResumoDespesasPorMes(selectedMonth);
 
       // Calcular lucro e margem
-      const totalDespesas = totalCompras + totalDespesasFixas;
+      const totalDespesas = totalCompras + resumoDespesas.total;
       const lucro = receitasRecebidas - totalDespesas;
       const margemLucro = receitasRecebidas > 0 ? (lucro / receitasRecebidas) * 100 : 0;
 
@@ -105,8 +107,10 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
           total: totalCompras,
           numero: comprasData.length,
         },
-        despesasFixas: {
-          total: totalDespesasFixas,
+        despesas: {
+          total: resumoDespesas.total,
+          fixas: resumoDespesas.fixas.total,
+          gerais: resumoDespesas.gerais.total,
         },
         lucro,
         margemLucro,
@@ -116,7 +120,7 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
       setDadosCompletos({
         receitas: receitasData,
         compras: comprasData,
-        despesasFixas: despesasFixasData,
+        despesas: despesasData,
       });
     } catch (error) {
       console.error('Erro ao carregar relatório:', error);
@@ -150,9 +154,11 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
         numero: relatorio.compras.numero,
         dados: dadosCompletos.compras,
       },
-      despesasFixas: {
-        total: relatorio.despesasFixas.total,
-        dados: dadosCompletos.despesasFixas,
+      despesas: {
+        total: relatorio.despesas.total,
+        fixas: relatorio.despesas.fixas,
+        gerais: relatorio.despesas.gerais,
+        dados: dadosCompletos.despesas,
       },
       lucro: relatorio.lucro,
       margemLucro: relatorio.margemLucro,
@@ -173,9 +179,11 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
         numero: relatorio.compras.numero,
         dados: dadosCompletos.compras,
       },
-      despesasFixas: {
-        total: relatorio.despesasFixas.total,
-        dados: dadosCompletos.despesasFixas,
+      despesas: {
+        total: relatorio.despesas.total,
+        fixas: relatorio.despesas.fixas,
+        gerais: relatorio.despesas.gerais,
+        dados: dadosCompletos.despesas,
       },
       lucro: relatorio.lucro,
       margemLucro: relatorio.margemLucro,
@@ -238,15 +246,18 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
           </div>
         </Card>
 
-        {/* Despesas Fixas */}
+        {/* Despesas */}
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Despesas Fixas</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Despesas</p>
               <p className="text-xl font-bold text-orange-600 dark:text-orange-400 mt-1">
-                {formatCurrency(relatorio.despesasFixas.total)}
+                {formatCurrency(relatorio.despesas.total)}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Mensais</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Fixas: {formatCurrency(relatorio.despesas.fixas)} | Gerais:{' '}
+                {formatCurrency(relatorio.despesas.gerais)}
+              </p>
             </div>
             <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
               <Calendar className="h-6 w-6 text-orange-600 dark:text-orange-400" />
@@ -338,11 +349,9 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Despesas Fixas
-              </span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Despesas</span>
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {formatCurrency(relatorio.despesasFixas.total)}
+                {formatCurrency(relatorio.despesas.total)}
               </span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -351,12 +360,16 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
                 style={{
                   width: `${
                     relatorio.receitas.recebido > 0
-                      ? (relatorio.despesasFixas.total / relatorio.receitas.recebido) * 100
+                      ? (relatorio.despesas.total / relatorio.receitas.recebido) * 100
                       : 0
                   }%`,
                 }}
               ></div>
             </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Fixas: {formatCurrency(relatorio.despesas.fixas)} | Gerais:{' '}
+              {formatCurrency(relatorio.despesas.gerais)}
+            </p>
           </div>
 
           {/* Total de Despesas */}
@@ -366,7 +379,7 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
                 Total de Despesas
               </span>
               <span className="text-sm font-bold text-red-600 dark:text-red-400">
-                {formatCurrency(relatorio.compras.total + relatorio.despesasFixas.total)}
+                {formatCurrency(relatorio.compras.total + relatorio.despesas.total)}
               </span>
             </div>
           </div>

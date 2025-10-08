@@ -32,7 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { icon: Users, label: 'Fornecedores', path: '/fornecedores' },
     { icon: ShoppingBag, label: 'Compras', path: '/compras' },
     { icon: DollarSign, label: 'Receitas', path: '/receitas' },
-    { icon: Calendar, label: 'Despesas Fixas', path: '/despesas-fixas' },
+    { icon: Calendar, label: 'Despesas', path: '/despesas' },
     { icon: FileText, label: 'Relatórios', path: '/relatorios' },
   ];
 

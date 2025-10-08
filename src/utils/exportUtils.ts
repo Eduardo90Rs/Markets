@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Compra, Receita, DespesaFixa } from '../types';
+import type { Compra, Receita, Despesa } from '../types';
 
 export interface RelatorioMensalData {
   mes: Date;
@@ -17,9 +17,11 @@ export interface RelatorioMensalData {
     numero: number;
     dados: Compra[];
   };
-  despesasFixas: {
+  despesas: {
     total: number;
-    dados: DespesaFixa[];
+    fixas: number;
+    gerais: number;
+    dados: Despesa[];
   };
   lucro: number;
   margemLucro: number;
@@ -30,98 +32,226 @@ export const exportToPDF = (compras: Compra[], title: string) => {
 
   // Título
   doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
   doc.text(title, 14, 20);
 
   // Data do relatório
   doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
   doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 28);
 
   let y = 40;
 
-  compras.forEach((compra, index) => {
+  // Agrupar compras por fornecedor
+  const comprasPorFornecedor = compras.reduce((acc, compra) => {
+    const fornecedorNome = compra.fornecedores?.nome || 'Fornecedor não encontrado';
+    const fornecedorId = compra.fornecedor_id || 'sem-fornecedor';
+
+    if (!acc[fornecedorId]) {
+      acc[fornecedorId] = {
+        nome: fornecedorNome,
+        compras: [],
+        total: 0,
+      };
+    }
+
+    acc[fornecedorId].compras.push(compra);
+    acc[fornecedorId].total += compra.valor_total;
+
+    return acc;
+  }, {} as Record<string, { nome: string; compras: Compra[]; total: number }>);
+
+  // Ordenar fornecedores por valor total (maior para menor)
+  const fornecedoresOrdenados = Object.entries(comprasPorFornecedor)
+    .sort(([, a], [, b]) => b.total - a.total);
+
+  // Iterar sobre fornecedores
+  fornecedoresOrdenados.forEach(([, fornecedor], fornecedorIndex) => {
     // Verifica se precisa de nova página
-    if (y > 270) {
+    if (y > 250) {
       doc.addPage();
       y = 20;
     }
 
-    doc.setFontSize(12);
+    // Nome do fornecedor
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${index + 1}. ${compra.fornecedores?.nome || 'Fornecedor não encontrado'}`, 14, y);
+    doc.setTextColor(37, 99, 235); // Cor azul
+    doc.text(`${fornecedor.nome}`, 14, y);
+    doc.setTextColor(0); // Volta para preto
+    y += 7;
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    // Subtotal do fornecedor
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Subtotal: R$ ${fornecedor.total.toFixed(2)} | ${fornecedor.compras.length} compra${fornecedor.compras.length !== 1 ? 's' : ''}`, 14, y);
+    y += 8;
+
+    // Linha separadora
+    doc.setDrawColor(200);
+    doc.line(14, y, 196, y);
     y += 6;
 
-    doc.text(`Data: ${format(new Date(compra.data_compra), 'dd/MM/yyyy')}`, 14, y);
-    y += 5;
+    // Compras do fornecedor
+    fornecedor.compras.forEach((compra, compraIndex) => {
+      // Verifica se precisa de nova página
+      if (y > 265) {
+        doc.addPage();
+        y = 20;
+      }
 
-    doc.text(`Valor: R$ ${compra.valor_total.toFixed(2)}`, 14, y);
-    y += 5;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
 
-    doc.text(`Forma de Pagamento: ${compra.forma_pagamento}`, 14, y);
-    y += 5;
-
-    doc.text(`Status: ${compra.status_pagamento === 'pago' ? 'Pago' : 'Pendente'}`, 14, y);
-    y += 5;
-
-    if (compra.numero_nf) {
-      doc.text(`NF: ${compra.numero_nf}`, 14, y);
+      // Data e Valor
+      doc.text(`${compraIndex + 1}. Data: ${format(new Date(compra.data_compra), 'dd/MM/yyyy')} | Valor: R$ ${compra.valor_total.toFixed(2)}`, 18, y);
       y += 5;
-    }
 
-    if (compra.data_vencimento) {
-      doc.text(`Vencimento: ${format(new Date(compra.data_vencimento), 'dd/MM/yyyy')}`, 14, y);
+      // Forma de pagamento e Status
+      const status = compra.status_pagamento === 'pago' ? '✓ Pago' : '○ Pendente';
+      doc.text(`   Pagamento: ${compra.forma_pagamento} | Status: ${status}`, 18, y);
       y += 5;
-    }
 
-    if (compra.observacoes) {
-      doc.text(`Obs: ${compra.observacoes.substring(0, 80)}`, 14, y);
-      y += 5;
-    }
+      // NF e Vencimento
+      if (compra.numero_nf || compra.data_vencimento) {
+        const nf = compra.numero_nf || '-';
+        const venc = compra.data_vencimento ? format(new Date(compra.data_vencimento), 'dd/MM/yyyy') : '-';
+        doc.text(`   NF: ${nf} | Vencimento: ${venc}`, 18, y);
+        y += 5;
+      }
 
-    y += 5; // Espaço entre registros
+      // Observações
+      if (compra.observacoes) {
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.text(`   Obs: ${compra.observacoes.substring(0, 70)}`, 18, y);
+        doc.setTextColor(0);
+        doc.setFontSize(10);
+        y += 5;
+      }
+
+      y += 3; // Espaço entre compras
+    });
+
+    y += 8; // Espaço entre fornecedores
   });
 
-  // Total
-  const total = compras.reduce((sum, c) => sum + c.valor_total, 0);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text(`Total: R$ ${total.toFixed(2)}`, 14, y + 5);
+  // Total Geral
+  const totalGeral = compras.reduce((sum, c) => sum + c.valor_total, 0);
 
-  doc.save(`relatorio_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`);
+  // Linha separadora final
+  if (y > 260) {
+    doc.addPage();
+    y = 20;
+  }
+  doc.setDrawColor(0);
+  doc.line(14, y, 196, y);
+  y += 8;
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`TOTAL GERAL: R$ ${totalGeral.toFixed(2)}`, 14, y);
+
+  doc.save(`relatorio_compras_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`);
 };
 
 export const exportToExcel = (compras: Compra[], fileName: string) => {
-  const data = compras.map((compra) => ({
-    Fornecedor: compra.fornecedores?.nome || 'Não encontrado',
-    'Data da Compra': format(new Date(compra.data_compra), 'dd/MM/yyyy'),
-    'Valor (R$)': compra.valor_total.toFixed(2),
-    'Forma de Pagamento': compra.forma_pagamento,
-    Status: compra.status_pagamento === 'pago' ? 'Pago' : 'Pendente',
-    'Número NF': compra.numero_nf || '-',
-    Vencimento: compra.data_vencimento
-      ? format(new Date(compra.data_vencimento), 'dd/MM/yyyy')
-      : '-',
-    Observações: compra.observacoes || '-',
-  }));
+  // Agrupar compras por fornecedor
+  const comprasPorFornecedor = compras.reduce((acc, compra) => {
+    const fornecedorNome = compra.fornecedores?.nome || 'Fornecedor não encontrado';
+    const fornecedorId = compra.fornecedor_id || 'sem-fornecedor';
 
-  // Adicionar linha de total
-  const total = compras.reduce((sum, c) => sum + c.valor_total, 0);
+    if (!acc[fornecedorId]) {
+      acc[fornecedorId] = {
+        nome: fornecedorNome,
+        compras: [],
+        total: 0,
+      };
+    }
+
+    acc[fornecedorId].compras.push(compra);
+    acc[fornecedorId].total += compra.valor_total;
+
+    return acc;
+  }, {} as Record<string, { nome: string; compras: Compra[]; total: number }>);
+
+  // Ordenar fornecedores por valor total (maior para menor)
+  const fornecedoresOrdenados = Object.entries(comprasPorFornecedor)
+    .sort(([, a], [, b]) => b.total - a.total);
+
+  const data: any[] = [];
+
+  // Iterar sobre fornecedores
+  fornecedoresOrdenados.forEach(([, fornecedor]) => {
+    // Cabeçalho do fornecedor
+    data.push({
+      Fornecedor: fornecedor.nome,
+      Data: '',
+      'Valor (R$)': '',
+      Pagamento: '',
+      Status: '',
+      NF: '',
+      Vencimento: '',
+      Observações: '',
+    });
+
+    // Compras do fornecedor
+    fornecedor.compras.forEach((compra) => {
+      data.push({
+        Fornecedor: '', // Em branco para não repetir
+        Data: format(new Date(compra.data_compra), 'dd/MM/yyyy'),
+        'Valor (R$)': compra.valor_total.toFixed(2),
+        Pagamento: compra.forma_pagamento,
+        Status: compra.status_pagamento === 'pago' ? 'Pago' : 'Pendente',
+        NF: compra.numero_nf || '-',
+        Vencimento: compra.data_vencimento
+          ? format(new Date(compra.data_vencimento), 'dd/MM/yyyy')
+          : '-',
+        Observações: compra.observacoes || '-',
+      });
+    });
+
+    // Subtotal do fornecedor
+    data.push({
+      Fornecedor: `Subtotal ${fornecedor.nome}`,
+      Data: '',
+      'Valor (R$)': fornecedor.total.toFixed(2),
+      Pagamento: '',
+      Status: '',
+      NF: '',
+      Vencimento: '',
+      Observações: '',
+    });
+
+    // Linha em branco para separar fornecedores
+    data.push({
+      Fornecedor: '',
+      Data: '',
+      'Valor (R$)': '',
+      Pagamento: '',
+      Status: '',
+      NF: '',
+      Vencimento: '',
+      Observações: '',
+    });
+  });
+
+  // Total geral
+  const totalGeral = compras.reduce((sum, c) => sum + c.valor_total, 0);
   data.push({
-    Fornecedor: 'TOTAL',
-    'Data da Compra': '',
-    'Valor (R$)': total.toFixed(2),
-    'Forma de Pagamento': '',
+    Fornecedor: 'TOTAL GERAL',
+    Data: '',
+    'Valor (R$)': totalGeral.toFixed(2),
+    Pagamento: '',
     Status: '',
-    'Número NF': '',
+    NF: '',
     Vencimento: '',
     Observações: '',
-  } as any);
+  });
 
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
+  XLSX.utils.book_append_sheet(wb, ws, 'Compras por Fornecedor');
 
   XLSX.writeFile(wb, `${fileName}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.xlsx`);
 };
@@ -180,10 +310,12 @@ export const exportRelatorioMensalToPDF = (data: RelatorioMensalData) => {
   doc.setFont('helvetica', 'normal');
   doc.text(`Compras: R$ ${data.compras.total.toFixed(2)} (${data.compras.numero} compras)`, 14, y);
   y += 6;
-  doc.text(`Despesas Fixas: R$ ${data.despesasFixas.total.toFixed(2)}`, 14, y);
+  doc.text(`Despesas Fixas: R$ ${data.despesas.fixas.toFixed(2)}`, 14, y);
+  y += 6;
+  doc.text(`Despesas Gerais: R$ ${data.despesas.gerais.toFixed(2)}`, 14, y);
   y += 6;
   doc.setFont('helvetica', 'bold');
-  doc.text(`Total de Despesas: R$ ${(data.compras.total + data.despesasFixas.total).toFixed(2)}`, 14, y);
+  doc.text(`Total de Despesas: R$ ${(data.compras.total + data.despesas.total).toFixed(2)}`, 14, y);
   y += 12;
 
   // Linha separadora
@@ -224,7 +356,7 @@ export const exportRelatorioMensalToPDF = (data: RelatorioMensalData) => {
   y += 6;
 
   const percentualDespesas = data.receitas.recebido > 0
-    ? ((data.compras.total + data.despesasFixas.total) / data.receitas.recebido * 100).toFixed(1)
+    ? ((data.compras.total + data.despesas.total) / data.receitas.recebido * 100).toFixed(1)
     : '0.0';
   doc.text(`Percentual de Despesas sobre Receita: ${percentualDespesas}%`, 14, y);
   y += 15;
@@ -256,29 +388,63 @@ export const exportRelatorioMensalToPDF = (data: RelatorioMensalData) => {
     y += 5;
   }
 
-  // Detalhamento de Despesas Fixas
-  if (data.despesasFixas.dados.length > 0 && y < 250) {
+  // Detalhamento de Despesas
+  if (data.despesas.dados.length > 0 && y < 250) {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Despesas Fixas', 14, y);
+    doc.text('Detalhamento de Despesas', 14, y);
     y += 7;
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
 
-    data.despesasFixas.dados.filter(d => d.ativa).forEach((despesa) => {
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-
-      doc.text(
-        `Dia ${despesa.dia_vencimento} - ${despesa.nome.substring(0, 40)} - R$ ${despesa.valor.toFixed(2)}`,
-        14,
-        y
-      );
+    // Despesas Fixas
+    const despesasFixas = data.despesas.dados.filter(d => d.tipo === 'fixa');
+    if (despesasFixas.length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Fixas:', 14, y);
+      doc.setFont('helvetica', 'normal');
       y += 5;
-    });
+
+      despesasFixas.forEach((despesa) => {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+
+        doc.text(
+          `Dia ${despesa.dia_vencimento} - ${despesa.descricao.substring(0, 40)} - R$ ${despesa.valor.toFixed(2)}`,
+          14,
+          y
+        );
+        y += 5;
+      });
+      y += 3;
+    }
+
+    // Despesas Gerais
+    const despesasGerais = data.despesas.dados.filter(d => d.tipo === 'geral');
+    if (despesasGerais.length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Gerais:', 14, y);
+      doc.setFont('helvetica', 'normal');
+      y += 5;
+
+      despesasGerais.forEach((despesa) => {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+
+        const dataFormatada = despesa.data ? format(new Date(despesa.data), 'dd/MM') : '-';
+        doc.text(
+          `${dataFormatada} - ${despesa.descricao.substring(0, 40)} - R$ ${despesa.valor.toFixed(2)}`,
+          14,
+          y
+        );
+        y += 5;
+      });
+    }
   }
 
   doc.save(`relatorio_mensal_${format(data.mes, 'yyyy-MM')}.pdf`);
@@ -299,8 +465,9 @@ export const exportRelatorioMensalToExcel = (data: RelatorioMensalData) => {
     { Indicador: 'DESPESAS', Valor: '' },
     { Indicador: 'Total de Compras', Valor: `R$ ${data.compras.total.toFixed(2)}` },
     { Indicador: 'Número de Compras', Valor: data.compras.numero.toString() },
-    { Indicador: 'Despesas Fixas', Valor: `R$ ${data.despesasFixas.total.toFixed(2)}` },
-    { Indicador: 'Total de Despesas', Valor: `R$ ${(data.compras.total + data.despesasFixas.total).toFixed(2)}` },
+    { Indicador: 'Despesas Fixas', Valor: `R$ ${data.despesas.fixas.toFixed(2)}` },
+    { Indicador: 'Despesas Gerais', Valor: `R$ ${data.despesas.gerais.toFixed(2)}` },
+    { Indicador: 'Total de Despesas', Valor: `R$ ${(data.compras.total + data.despesas.total).toFixed(2)}` },
     { Indicador: '', Valor: '' },
     { Indicador: 'RESULTADO', Valor: '' },
     { Indicador: 'Lucro Líquido', Valor: `R$ ${data.lucro.toFixed(2)}` },
@@ -316,7 +483,7 @@ export const exportRelatorioMensalToExcel = (data: RelatorioMensalData) => {
     {
       Indicador: '% Despesas sobre Receita',
       Valor: data.receitas.recebido > 0
-        ? `${((data.compras.total + data.despesasFixas.total) / data.receitas.recebido * 100).toFixed(1)}%`
+        ? `${((data.compras.total + data.despesas.total) / data.receitas.recebido * 100).toFixed(1)}%`
         : '0.0%'
     },
   ];
@@ -341,17 +508,18 @@ export const exportRelatorioMensalToExcel = (data: RelatorioMensalData) => {
     'Número NF': compra.numero_nf || '-',
   }));
 
-  // Aba 4: Despesas Fixas
-  const despesasSheet = data.despesasFixas.dados
-    .filter(d => d.ativa)
-    .map((despesa) => ({
-      Nome: despesa.nome,
-      'Valor Mensal (R$)': despesa.valor.toFixed(2),
-      'Dia Vencimento': despesa.dia_vencimento,
-      Categoria: despesa.categoria,
-      Status: despesa.ativa ? 'Ativa' : 'Inativa',
-      Observações: despesa.observacoes || '-',
-    }));
+  // Aba 4: Despesas (Fixas + Gerais)
+  const despesasSheet = data.despesas.dados.map((despesa) => ({
+    Tipo: despesa.tipo === 'fixa' ? 'Fixa' : 'Geral',
+    Data: despesa.tipo === 'geral' && despesa.data ? format(new Date(despesa.data), 'dd/MM/yyyy') : '-',
+    'Dia Vencimento': despesa.tipo === 'fixa' && despesa.dia_vencimento ? despesa.dia_vencimento : '-',
+    Descrição: despesa.descricao,
+    'Valor (R$)': despesa.valor.toFixed(2),
+    Categoria: despesa.categoria,
+    Status: despesa.status_pagamento === 'pago' ? 'Pago' : 'Pendente',
+    Ativa: despesa.tipo === 'fixa' ? (despesa.ativa ? 'Sim' : 'Não') : '-',
+    Observações: despesa.observacoes || '-',
+  }));
 
   // Criar workbook
   const wb = XLSX.utils.book_new();
@@ -371,7 +539,7 @@ export const exportRelatorioMensalToExcel = (data: RelatorioMensalData) => {
 
   if (despesasSheet.length > 0) {
     const wsDespesas = XLSX.utils.json_to_sheet(despesasSheet);
-    XLSX.utils.book_append_sheet(wb, wsDespesas, 'Despesas Fixas');
+    XLSX.utils.book_append_sheet(wb, wsDespesas, 'Despesas');
   }
 
   XLSX.writeFile(wb, `relatorio_mensal_${format(data.mes, 'yyyy-MM')}.xlsx`);

@@ -7,7 +7,7 @@ import { Card, MonthYearPicker } from '../components/ui';
 import { comprasService } from '../services/comprasService';
 import { fornecedoresService } from '../services/fornecedoresService';
 import { receitasService } from '../services/receitasService';
-import { despesasFixasService } from '../services/despesasFixasService';
+import { despesasService } from '../services/despesasService';
 import type { Compra, Receita } from '../types';
 
 export const Dashboard: React.FC = () => {
@@ -51,7 +51,7 @@ export const Dashboard: React.FC = () => {
       ] = await Promise.all([
         comprasService.getMonthStats(selectedMonth),
         receitasService.getMonthStats(selectedMonth),
-        despesasFixasService.getTotalMensal(),
+        despesasService.getTotalDespesasPorMes(selectedMonth),
         comprasService.getGastosPorFornecedor(selectedMonth),
         comprasService.getProximasVencimento(7),
         fornecedoresService.countAtivos(),

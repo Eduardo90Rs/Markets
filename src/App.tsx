@@ -10,7 +10,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Fornecedores } from './pages/Fornecedores';
 import { Compras } from './pages/Compras';
 import { Receitas } from './pages/Receitas';
-import { DespesasFixas } from './pages/DespesasFixas';
+import { Despesas } from './pages/Despesas';
 import { Relatorios } from './pages/Relatorios';
 
 function App() {
@@ -37,7 +37,7 @@ function App() {
               <Route path="fornecedores" element={<Fornecedores />} />
               <Route path="compras" element={<Compras />} />
               <Route path="receitas" element={<Receitas />} />
-              <Route path="despesas-fixas" element={<DespesasFixas />} />
+              <Route path="despesas" element={<Despesas />} />
               <Route path="relatorios" element={<Relatorios />} />
             </Route>
 

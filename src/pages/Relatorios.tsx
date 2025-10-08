@@ -240,64 +240,116 @@ export const Relatorios: React.FC = () => {
                 </div>
               </Card>
 
-              {/* Tabela de Compras */}
-              <Card title="Detalhamento">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 dark:bg-gray-800">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
-                          Data
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
-                          Fornecedor
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
-                          Valor
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
-                          Forma Pgto
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
-                          Status
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {compras.map((compra) => (
-                        <tr
-                          key={compra.id}
-                          className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        >
-                          <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
-                            {format(new Date(compra.data_compra), 'dd/MM/yyyy')}
-                          </td>
-                          <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
-                            {compra.fornecedores?.nome || 'Não encontrado'}
-                          </td>
-                          <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                            {formatCurrency(compra.valor_total)}
-                          </td>
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                            {compra.forma_pagamento}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                compra.status_pagamento === 'pago'
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                              }`}
-                            >
-                              {compra.status_pagamento === 'pago' ? 'Pago' : 'Pendente'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
+              {/* Compras Agrupadas por Fornecedor */}
+              <div className="space-y-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Detalhamento por Fornecedor
+                </h2>
+
+                {(() => {
+                  // Agrupar compras por fornecedor
+                  const comprasPorFornecedor = compras.reduce((acc, compra) => {
+                    const fornecedorNome = compra.fornecedores?.nome || 'Fornecedor não encontrado';
+                    const fornecedorId = compra.fornecedor_id || 'sem-fornecedor';
+
+                    if (!acc[fornecedorId]) {
+                      acc[fornecedorId] = {
+                        nome: fornecedorNome,
+                        compras: [],
+                        total: 0,
+                      };
+                    }
+
+                    acc[fornecedorId].compras.push(compra);
+                    acc[fornecedorId].total += compra.valor_total;
+
+                    return acc;
+                  }, {} as Record<string, { nome: string; compras: Compra[]; total: number }>);
+
+                  // Ordenar fornecedores por valor total (maior para menor)
+                  const fornecedoresOrdenados = Object.entries(comprasPorFornecedor)
+                    .sort(([, a], [, b]) => b.total - a.total);
+
+                  return fornecedoresOrdenados.map(([fornecedorId, dados]) => (
+                    <Card key={fornecedorId}>
+                      <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                              {dados.nome}
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {dados.compras.length} compra{dados.compras.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
+                            <p className="text-xl font-bold text-primary-600 dark:text-primary-400">
+                              {formatCurrency(dados.total)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                              <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
+                                Data
+                              </th>
+                              <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
+                                Valor
+                              </th>
+                              <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
+                                Forma Pgto
+                              </th>
+                              <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
+                                NF
+                              </th>
+                              <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
+                                Status
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {dados.compras.map((compra) => (
+                              <tr
+                                key={compra.id}
+                                className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                              >
+                                <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
+                                  {format(new Date(compra.data_compra), 'dd/MM/yyyy')}
+                                </td>
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                                  {formatCurrency(compra.valor_total)}
+                                </td>
+                                <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                  {compra.forma_pagamento}
+                                </td>
+                                <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                  {compra.numero_nf || '-'}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span
+                                    className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                      compra.status_pagamento === 'pago'
+                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                    }`}
+                                  >
+                                    {compra.status_pagamento === 'pago' ? 'Pago' : 'Pendente'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </Card>
+                  ));
+                })()}
+              </div>
             </>
           )}
 

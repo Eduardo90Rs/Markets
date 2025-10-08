@@ -69,6 +69,26 @@ export interface DespesaFixa {
   user_id: string;
 }
 
+export interface Despesa {
+  id: string;
+  user_id: string;
+  tipo: 'fixa' | 'geral';
+  descricao: string;
+  valor: number;
+  categoria: string;
+  status_pagamento: 'pago' | 'pendente';
+  observacoes?: string | null;
+  // Campos para Despesas Gerais
+  data?: string | null;
+  // Campos para Despesas Fixas
+  mes_referencia?: string | null;
+  dia_vencimento?: number | null;
+  ativa?: boolean;
+  despesa_origem_id?: string | null;
+  criado_em: string;
+  atualizado_em: string;
+}
+
 export interface User {
   id: string;
   email: string;
