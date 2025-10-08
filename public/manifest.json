@@ -1,0 +1,17 @@
+{
+  "name": "Mercado Dashboard - Controle de Fornecedores",
+  "short_name": "Mercado Dashboard",
+  "description": "Sistema de controle de fornecedores e compras para mercado",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+}

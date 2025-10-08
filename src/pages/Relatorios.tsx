@@ -1,0 +1,283 @@
+import React, { useState, useEffect } from 'react';
+import { FileDown, FileSpreadsheet, Calendar } from 'lucide-react';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { Button, Card, Select, Input } from '../components/ui';
+import { comprasService } from '../services/comprasService';
+import { fornecedoresService } from '../services/fornecedoresService';
+import { exportToPDF, exportToExcel } from '../utils/exportUtils';
+import type { Compra, Fornecedor } from '../types';
+
+export const Relatorios: React.FC = () => {
+  const [compras, setCompras] = useState<Compra[]>([]);
+  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Filtros
+  const [fornecedorId, setFornecedorId] = useState('');
+  const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [statusPagamento, setStatusPagamento] = useState('');
+
+  useEffect(() => {
+    loadFornecedores();
+  }, []);
+
+  const loadFornecedores = async () => {
+    try {
+      const data = await fornecedoresService.getAll();
+      setFornecedores(data);
+    } catch (error) {
+      console.error('Erro ao carregar fornecedores:', error);
+    }
+  };
+
+  const gerarRelatorio = async () => {
+    try {
+      setLoading(true);
+      const filters: any = {
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+      };
+
+      if (fornecedorId) filters.fornecedor_id = fornecedorId;
+      if (statusPagamento) filters.status_pagamento = statusPagamento;
+
+      const data = await comprasService.getWithFilters(filters);
+      setCompras(data);
+    } catch (error) {
+      console.error('Erro ao gerar relatório:', error);
+      alert('Erro ao gerar relatório. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (compras.length === 0) {
+      alert('Nenhum dado para exportar. Gere o relatório primeiro.');
+      return;
+    }
+
+    const title = `Relatório de Compras - ${format(new Date(dataInicio), 'dd/MM/yyyy')} a ${format(new Date(dataFim), 'dd/MM/yyyy')}`;
+    exportToPDF(compras, title);
+  };
+
+  const handleExportExcel = () => {
+    if (compras.length === 0) {
+      alert('Nenhum dado para exportar. Gere o relatório primeiro.');
+      return;
+    }
+
+    exportToExcel(compras, 'relatorio_compras');
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
+  const totalGeral = compras.reduce((sum, c) => sum + c.valor_total, 0);
+  const totalPago = compras
+    .filter((c) => c.status_pagamento === 'pago')
+    .reduce((sum, c) => sum + c.valor_total, 0);
+  const totalPendente = compras
+    .filter((c) => c.status_pagamento === 'pendente')
+    .reduce((sum, c) => sum + c.valor_total, 0);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Relatórios</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Gere relatórios detalhados e exporte para PDF ou Excel
+        </p>
+      </div>
+
+      {/* Filtros */}
+      <Card title="Filtros do Relatório">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Select
+            label="Fornecedor"
+            options={[
+              { value: '', label: 'Todos os fornecedores' },
+              ...fornecedores.map((f) => ({ value: f.id, label: f.nome })),
+            ]}
+            value={fornecedorId}
+            onChange={(e) => setFornecedorId(e.target.value)}
+          />
+
+          <Input
+            label="Data Início"
+            type="date"
+            value={dataInicio}
+            onChange={(e) => setDataInicio(e.target.value)}
+          />
+
+          <Input
+            label="Data Fim"
+            type="date"
+            value={dataFim}
+            onChange={(e) => setDataFim(e.target.value)}
+          />
+
+          <Select
+            label="Status"
+            options={[
+              { value: '', label: 'Todos' },
+              { value: 'pago', label: 'Pago' },
+              { value: 'pendente', label: 'Pendente' },
+            ]}
+            value={statusPagamento}
+            onChange={(e) => setStatusPagamento(e.target.value)}
+          />
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <Button onClick={gerarRelatorio} loading={loading}>
+            <Calendar className="mr-2 h-5 w-5" />
+            Gerar Relatório
+          </Button>
+        </div>
+      </Card>
+
+      {/* Resultados */}
+      {compras.length > 0 && (
+        <>
+          {/* Resumo */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="!p-6">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Geral</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                {formatCurrency(totalGeral)}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {compras.length} compra{compras.length !== 1 ? 's' : ''}
+              </p>
+            </Card>
+
+            <Card className="!p-6">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Pago</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                {formatCurrency(totalPago)}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {compras.filter((c) => c.status_pagamento === 'pago').length} compra
+                {compras.filter((c) => c.status_pagamento === 'pago').length !== 1 ? 's' : ''}
+              </p>
+            </Card>
+
+            <Card className="!p-6">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Pendente</p>
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
+                {formatCurrency(totalPendente)}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {compras.filter((c) => c.status_pagamento === 'pendente').length} compra
+                {compras.filter((c) => c.status_pagamento === 'pendente').length !== 1
+                  ? 's'
+                  : ''}
+              </p>
+            </Card>
+          </div>
+
+          {/* Ações de Exportação */}
+          <Card>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Exportar Relatório
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Escolha o formato para download
+                </p>
+              </div>
+              <div className="flex space-x-3">
+                <Button variant="secondary" onClick={handleExportPDF}>
+                  <FileDown className="mr-2 h-5 w-5" />
+                  Exportar PDF
+                </Button>
+                <Button variant="secondary" onClick={handleExportExcel}>
+                  <FileSpreadsheet className="mr-2 h-5 w-5" />
+                  Exportar Excel
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Tabela de Compras */}
+          <Card title="Detalhamento">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
+                      Data
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
+                      Fornecedor
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
+                      Valor
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
+                      Forma Pgto
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {compras.map((compra) => (
+                    <tr
+                      key={compra.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
+                        {format(new Date(compra.data_compra), 'dd/MM/yyyy')}
+                      </td>
+                      <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
+                        {compra.fornecedores?.nome || 'Não encontrado'}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                        {formatCurrency(compra.valor_total)}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                        {compra.forma_pagamento}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            compra.status_pagamento === 'pago'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                          }`}
+                        >
+                          {compra.status_pagamento === 'pago' ? 'Pago' : 'Pendente'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
+
+      {!loading && compras.length === 0 && (
+        <Card>
+          <div className="text-center py-12">
+            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400">
+              Selecione os filtros e clique em "Gerar Relatório"
+            </p>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+};
