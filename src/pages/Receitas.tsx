@@ -1,0 +1,308 @@
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Filter, DollarSign } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Button, Card, Modal, Select } from '../components/ui';
+import { ReceitaForm } from '../components/receitas/ReceitaForm';
+import { receitasService } from '../services/receitasService';
+import type { Receita } from '../types';
+
+export const Receitas: React.FC = () => {
+  const [receitas, setReceitas] = useState<Receita[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingReceita, setEditingReceita] = useState<Receita | undefined>();
+  const [submitLoading, setSubmitLoading] = useState(false);
+
+  // Filtros
+  const [filterCategoria, setFilterCategoria] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Stats
+  const [stats, setStats] = useState({
+    totalRecebido: 0,
+    totalPendente: 0,
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [receitasData, statsData] = await Promise.all([
+        receitasService.getAll(),
+        receitasService.getMonthStats(),
+      ]);
+      setReceitas(receitasData);
+      setStats(statsData);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyFilters = async () => {
+    try {
+      setLoading(true);
+      const filters: any = {};
+      if (filterCategoria) filters.categoria = filterCategoria;
+      if (filterStatus) filters.status_recebimento = filterStatus;
+
+      const data = await receitasService.getWithFilters(filters);
+      setReceitas(data);
+    } catch (error) {
+      console.error('Erro ao aplicar filtros:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearFilters = () => {
+    setFilterCategoria('');
+    setFilterStatus('');
+    loadData();
+  };
+
+  const handleCreate = () => {
+    setEditingReceita(undefined);
+    setModalOpen(true);
+  };
+
+  const handleEdit = (receita: Receita) => {
+    setEditingReceita(receita);
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
+
+    try {
+      await receitasService.delete(id);
+      loadData();
+    } catch (error) {
+      console.error('Erro ao excluir receita:', error);
+      alert('Erro ao excluir receita. Tente novamente.');
+    }
+  };
+
+  const handleSubmit = async (data: any) => {
+    try {
+      setSubmitLoading(true);
+      if (editingReceita) {
+        await receitasService.update(editingReceita.id, data);
+      } else {
+        await receitasService.create(data);
+      }
+      setModalOpen(false);
+      loadData();
+    } catch (error) {
+      console.error('Erro ao salvar receita:', error);
+      alert('Erro ao salvar receita. Tente novamente.');
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
+  const categorias = Array.from(new Set(receitas.map((r) => r.categoria)));
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Receitas</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Gerencie suas receitas e recebimentos
+          </p>
+        </div>
+        <div className="flex space-x-2">
+          <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
+            <Filter className="mr-2 h-5 w-5" />
+            Filtros
+          </Button>
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-5 w-5" />
+            Nova Receita
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Recebido no Mês</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                {formatCurrency(stats.totalRecebido)}
+              </p>
+            </div>
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <DollarSign className="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Pendente no Mês</p>
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
+                {formatCurrency(stats.totalPendente)}
+              </p>
+            </div>
+            <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+              <DollarSign className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filtros */}
+      {showFilters && (
+        <Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Select
+              label="Categoria"
+              options={[
+                { value: '', label: 'Todas' },
+                ...categorias.map((cat) => ({ value: cat, label: cat })),
+              ]}
+              value={filterCategoria}
+              onChange={(e) => setFilterCategoria(e.target.value)}
+            />
+
+            <Select
+              label="Status"
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'recebido', label: 'Recebido' },
+                { value: 'pendente', label: 'Pendente' },
+              ]}
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            />
+
+            <div className="flex items-end space-x-2">
+              <Button onClick={applyFilters} className="flex-1">
+                Aplicar
+              </Button>
+              <Button variant="secondary" onClick={clearFilters}>
+                Limpar
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Lista */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+      ) : receitas.length === 0 ? (
+        <Card>
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400">Nenhuma receita cadastrada</p>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {receitas.map((receita) => (
+            <Card key={receita.id} className="!p-0">
+              <div className="p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {receita.descricao}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {format(new Date(receita.data), "dd 'de' MMMM 'de' yyyy", {
+                            locale: ptBR,
+                          })}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-3 py-1 text-xs font-medium rounded-full ${
+                          receita.status_recebimento === 'recebido'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        }`}
+                      >
+                        {receita.status_recebimento === 'recebido' ? 'Recebido' : 'Pendente'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Valor</p>
+                        <p className="text-lg font-bold text-primary-600 dark:text-primary-400">
+                          {formatCurrency(receita.valor)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Categoria</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {receita.categoria}
+                        </p>
+                      </div>
+                    </div>
+
+                    {receita.observacoes && (
+                      <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                        {receita.observacoes}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-2">
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(receita)}>
+                      <Edit2 className="h-4 w-4 md:mr-2" />
+                      <span className="hidden md:inline">Editar</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(receita.id)}
+                      className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                    >
+                      <Trash2 className="h-4 w-4 md:mr-2" />
+                      <span className="hidden md:inline">Excluir</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Modal */}
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingReceita ? 'Editar Receita' : 'Nova Receita'}
+      >
+        <ReceitaForm
+          receita={editingReceita}
+          onSubmit={handleSubmit}
+          onCancel={() => setModalOpen(false)}
+          loading={submitLoading}
+        />
+      </Modal>
+    </div>
+  );
+};

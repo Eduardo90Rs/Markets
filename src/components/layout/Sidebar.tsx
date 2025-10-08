@@ -11,6 +11,8 @@ import {
   Sun,
   Menu,
   X,
+  DollarSign,
+  Calendar,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -29,6 +31,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Users, label: 'Fornecedores', path: '/fornecedores' },
     { icon: ShoppingBag, label: 'Compras', path: '/compras' },
+    { icon: DollarSign, label: 'Receitas', path: '/receitas' },
+    { icon: Calendar, label: 'Despesas Fixas', path: '/despesas-fixas' },
     { icon: FileText, label: 'Relatórios', path: '/relatorios' },
   ];
 

@@ -100,6 +100,82 @@ export interface Database {
           user_id?: string
         }
       }
+      receitas: {
+        Row: {
+          id: string
+          data: string
+          descricao: string
+          valor: number
+          categoria: string
+          status_recebimento: 'recebido' | 'pendente'
+          observacoes: string | null
+          criado_em: string
+          atualizado_em: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          data: string
+          descricao: string
+          valor: number
+          categoria: string
+          status_recebimento?: 'recebido' | 'pendente'
+          observacoes?: string | null
+          criado_em?: string
+          atualizado_em?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          data?: string
+          descricao?: string
+          valor?: number
+          categoria?: string
+          status_recebimento?: 'recebido' | 'pendente'
+          observacoes?: string | null
+          criado_em?: string
+          atualizado_em?: string
+          user_id?: string
+        }
+      }
+      despesas_fixas: {
+        Row: {
+          id: string
+          nome: string
+          valor: number
+          dia_vencimento: number
+          categoria: string
+          ativa: boolean
+          observacoes: string | null
+          criado_em: string
+          atualizado_em: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          valor: number
+          dia_vencimento: number
+          categoria: string
+          ativa?: boolean
+          observacoes?: string | null
+          criado_em?: string
+          atualizado_em?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          valor?: number
+          dia_vencimento?: number
+          categoria?: string
+          ativa?: boolean
+          observacoes?: string | null
+          criado_em?: string
+          atualizado_em?: string
+          user_id?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

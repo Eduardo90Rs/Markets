@@ -43,6 +43,32 @@ export interface GastosPorFornecedor {
   valor: number;
 }
 
+export interface Receita {
+  id: string;
+  data: string;
+  descricao: string;
+  valor: number;
+  categoria: string;
+  status_recebimento: 'recebido' | 'pendente';
+  observacoes?: string | null;
+  criado_em: string;
+  atualizado_em: string;
+  user_id: string;
+}
+
+export interface DespesaFixa {
+  id: string;
+  nome: string;
+  valor: number;
+  dia_vencimento: number;
+  categoria: string;
+  ativa: boolean;
+  observacoes?: string | null;
+  criado_em: string;
+  atualizado_em: string;
+  user_id: string;
+}
+
 export interface User {
   id: string;
   email: string;
