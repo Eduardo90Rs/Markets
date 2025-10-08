@@ -8,7 +8,7 @@ import {
   FileDown,
   FileSpreadsheet,
 } from 'lucide-react';
-import { Card, Select, Button } from '../ui';
+import { Card, Button, MonthYearPicker } from '../ui';
 import { receitasService } from '../../services/receitasService';
 import { comprasService } from '../../services/comprasService';
 import { despesasFixasService } from '../../services/despesasFixasService';
@@ -136,25 +136,6 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
     return `${value.toFixed(1)}%`;
   };
 
-  // Gerar opções de meses (últimos 12 meses)
-  const generateMonthOptions = () => {
-    const options = [];
-    for (let i = 0; i < 12; i++) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      options.push({
-        value: format(date, 'yyyy-MM'),
-        label: format(date, "MMMM 'de' yyyy", { locale: ptBR }),
-      });
-    }
-    return options;
-  };
-
-  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const [year, month] = e.target.value.split('-');
-    setSelectedMonth(new Date(parseInt(year), parseInt(month) - 1));
-  };
-
   const handleExportPDF = () => {
     exportRelatorioMensalToPDF({
       mes: selectedMonth,
@@ -212,18 +193,11 @@ export const RelatorioMensal: React.FC<RelatorioMensalProps> = ({ mes = new Date
   return (
     <div className="space-y-6">
       {/* Seletor de Mês */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Relatório Mensal
         </h2>
-        <div className="w-64">
-          <Select
-            label=""
-            options={generateMonthOptions()}
-            value={format(selectedMonth, 'yyyy-MM')}
-            onChange={handleMonthChange}
-          />
-        </div>
+        <MonthYearPicker value={selectedMonth} onChange={setSelectedMonth} />
       </div>
 
       {/* Cards de Resumo */}
