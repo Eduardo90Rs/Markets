@@ -97,7 +97,7 @@ export const DespesaForm: React.FC<DespesaFormProps> = ({
         }
       : {
           tipo,
-          status_pagamento: 'pendente',
+          status_pagamento: 'pago',
           categoria: 'Outros',
           ...(tipo === 'fixa'
             ? {

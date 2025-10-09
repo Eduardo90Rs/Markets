@@ -122,7 +122,16 @@ export const Dashboard: React.FC = () => {
     }).format(value);
   };
 
-  const COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  const COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#84cc16', '#eab308', '#f97316', '#fb923c'];
+
+  // Função para gerar cor consistente baseada no nome
+  const getColorForSupplier = (supplierName: string, index: number) => {
+    // Usa o índice como fallback, mas tenta usar hash do nome para consistência
+    const hash = supplierName.split('').reduce((acc, char) => {
+      return char.charCodeAt(0) + ((acc << 5) - acc);
+    }, 0);
+    return COLORS[Math.abs(hash) % COLORS.length];
+  };
 
   if (loading) {
     return (
@@ -408,7 +417,11 @@ export const Dashboard: React.FC = () => {
                     borderRadius: '8px',
                   }}
                 />
-                <Bar dataKey="valor" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="valor" radius={[8, 8, 0, 0]}>
+                  {gastosPorFornecedor.slice(0, 5).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorForSupplier(entry.fornecedor, index)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </Card>
