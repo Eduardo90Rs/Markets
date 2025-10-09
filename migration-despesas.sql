@@ -28,7 +28,7 @@ CREATE TABLE despesas (
   mes_referencia DATE, -- Mês/ano de referência (formato: YYYY-MM-01)
   dia_vencimento INTEGER CHECK (dia_vencimento >= 1 AND dia_vencimento <= 31),
   ativa BOOLEAN DEFAULT true, -- Se a despesa fixa está ativa para próximos meses
-  despesa_origem_id UUID REFERENCES despesas(id), -- Referência à despesa fixa original quando importada
+  despesa_origem_id UUID REFERENCES despesas(id) ON DELETE SET NULL, -- Referência à despesa fixa original quando importada
 
   -- Timestamps
   criado_em TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

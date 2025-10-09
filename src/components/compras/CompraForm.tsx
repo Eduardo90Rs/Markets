@@ -41,17 +41,14 @@ export const CompraForm: React.FC<CompraFormProps> = ({
     handleSubmit,
     formState: { errors },
     reset,
-    watch,
   } = useForm<CompraFormData>({
     resolver: zodResolver(compraSchema),
     defaultValues: compra || {
-      status_pagamento: 'pendente',
-      forma_pagamento: 'Pix',
+      status_pagamento: 'pago',
+      forma_pagamento: 'Boleto',
       data_compra: new Date().toISOString().split('T')[0],
     },
   });
-
-  const formaPagamento = watch('forma_pagamento');
 
   useEffect(() => {
     loadFornecedores();
@@ -93,7 +90,7 @@ export const CompraForm: React.FC<CompraFormProps> = ({
         />
 
         <Input
-          label="Data da Compra *"
+          label="Data *"
           type="date"
           error={errors.data_compra?.message}
           {...register('data_compra')}
@@ -127,15 +124,6 @@ export const CompraForm: React.FC<CompraFormProps> = ({
           error={errors.numero_nf?.message}
           {...register('numero_nf')}
         />
-
-        {formaPagamento === 'Boleto' && (
-          <Input
-            label="Data de Vencimento"
-            type="date"
-            error={errors.data_vencimento?.message}
-            {...register('data_vencimento')}
-          />
-        )}
 
         <Select
           label="Status do Pagamento *"
