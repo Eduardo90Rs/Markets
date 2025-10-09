@@ -311,6 +311,48 @@ export const Dashboard: React.FC = () => {
           </ResponsiveContainer>
         </Card>
 
+        {/* Margem de Lucro */}
+        <Card title="Margem de Lucro">
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart
+              data={[
+                {
+                  name: 'Margem',
+                  valor: Math.max(0, Math.min(100, stats.margemLucro)),
+                }
+              ]}
+            >
+              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+              <XAxis
+                dataKey="name"
+                className="text-xs fill-gray-600 dark:fill-gray-400"
+              />
+              <YAxis
+                domain={[0, 100]}
+                className="text-xs fill-gray-600 dark:fill-gray-400"
+                label={{ value: '%', position: 'insideLeft' }}
+              />
+              <Tooltip
+                formatter={(value: number) => `${value.toFixed(1)}%`}
+                contentStyle={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                }}
+              />
+              <Bar
+                dataKey="valor"
+                fill={stats.lucroLiquido >= 0 ? '#10b981' : '#ef4444'}
+                radius={[8, 8, 0, 0]}
+                label={{ position: 'top', formatter: (value: number) => `${value.toFixed(1)}%` }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+
+      {/* Distribuição de Despesas */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Distribuição de Despesas - Pizza */}
         <Card title="Distribuição de Despesas">
           <ResponsiveContainer width="100%" height={300}>
