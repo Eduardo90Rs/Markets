@@ -38,6 +38,24 @@ export const Despesas: React.FC = () => {
     loadData();
   }, [selectedMonth, activeTab]);
 
+  // Atualiza automaticamente o mês quando a data muda
+  useEffect(() => {
+    const checkDate = setInterval(() => {
+      const currentMonth = new Date();
+      const currentYear = currentMonth.getFullYear();
+      const currentMonthNum = currentMonth.getMonth();
+
+      const selectedYear = selectedMonth.getFullYear();
+      const selectedMonthNum = selectedMonth.getMonth();
+
+      if (currentYear !== selectedYear || currentMonthNum !== selectedMonthNum) {
+        setSelectedMonth(new Date(currentYear, currentMonthNum, 1));
+      }
+    }, 60000); // Verifica a cada minuto
+
+    return () => clearInterval(checkDate);
+  }, [selectedMonth]);
+
   const loadData = async () => {
     try {
       setLoading(true);

@@ -42,6 +42,20 @@ export const Dashboard: React.FC = () => {
     loadDashboardData();
   }, [selectedMonth]);
 
+  // Atualiza automaticamente o mês quando a data muda
+  useEffect(() => {
+    const checkDate = setInterval(() => {
+      const currentMonth = startOfMonth(new Date());
+      const selectedMonthStart = startOfMonth(selectedMonth);
+
+      if (currentMonth.getTime() !== selectedMonthStart.getTime()) {
+        setSelectedMonth(currentMonth);
+      }
+    }, 60000); // Verifica a cada minuto
+
+    return () => clearInterval(checkDate);
+  }, [selectedMonth]);
+
   const loadDashboardData = async () => {
     try {
       setLoading(true);
