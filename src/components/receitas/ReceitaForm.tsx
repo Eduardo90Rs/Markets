@@ -45,7 +45,7 @@ export const ReceitaForm: React.FC<ReceitaFormProps> = ({
   } = useForm<ReceitaFormData>({
     resolver: zodResolver(receitaSchema),
     defaultValues: receita || {
-      status_recebimento: 'pendente',
+      status_recebimento: 'recebido',
       categoria: 'Vendas',
       data: new Date().toISOString().split('T')[0],
     },

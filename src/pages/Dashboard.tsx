@@ -22,6 +22,7 @@ export const Dashboard: React.FC = () => {
     totalCompras: 0,
     numeroCompras: 0,
     despesasFixas: 0,
+    despesasGerais: 0,
     totalDespesas: 0,
     // Resultado
     lucroLiquido: 0,
@@ -44,21 +45,21 @@ export const Dashboard: React.FC = () => {
       const [
         comprasStats,
         receitasStats,
-        despesasFixasTotal,
+        resumoDespesas,
         gastos,
         proximas,
         fornecedoresCount,
       ] = await Promise.all([
         comprasService.getMonthStats(selectedMonth),
         receitasService.getMonthStats(selectedMonth),
-        despesasService.getTotalDespesasPorMes(selectedMonth),
+        despesasService.getResumoDespesasPorMes(selectedMonth),
         comprasService.getGastosPorFornecedor(selectedMonth),
         comprasService.getProximasVencimento(7),
         fornecedoresService.countAtivos(),
       ]);
 
       // Calcular totais
-      const totalDespesas = comprasStats.totalGasto + despesasFixasTotal;
+      const totalDespesas = comprasStats.totalGasto + resumoDespesas.total;
       const lucroLiquido = receitasStats.totalRecebido - totalDespesas;
       const margemLucro = receitasStats.totalRecebido > 0
         ? (lucroLiquido / receitasStats.totalRecebido) * 100
@@ -72,7 +73,8 @@ export const Dashboard: React.FC = () => {
         // Despesas
         totalCompras: comprasStats.totalGasto,
         numeroCompras: comprasStats.numeroCompras,
-        despesasFixas: despesasFixasTotal,
+        despesasFixas: resumoDespesas.fixas.total,
+        despesasGerais: resumoDespesas.gerais.total,
         totalDespesas,
         // Resultado
         lucroLiquido,
@@ -203,21 +205,21 @@ export const Dashboard: React.FC = () => {
           </div>
         </Card>
 
-        {/* Despesas Fixas */}
+        {/* Total Despesas */}
         <Card className="!p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Despesas Fixas</p>
-              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
-                {formatCurrency(stats.despesasFixas)}
+              <p className="text-sm text-gray-600 dark:text-gray-400">Despesas</p>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+                {formatCurrency(stats.totalDespesas)}
               </p>
             </div>
-            <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-full">
-              <Calendar className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+            <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full">
+              <TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
           </div>
           <div className="flex items-center mt-4 text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Mensais</span>
+            <span className="text-gray-600 dark:text-gray-400">Fixas + Gerais + Compras</span>
           </div>
         </Card>
 
@@ -270,6 +272,7 @@ export const Dashboard: React.FC = () => {
                   Receitas: stats.receitasRecebidas,
                   Compras: stats.totalCompras,
                   'Despesas Fixas': stats.despesasFixas,
+                  'Despesas Gerais': stats.despesasGerais,
                   Lucro: stats.lucroLiquido,
                 }
               ]}
@@ -292,6 +295,7 @@ export const Dashboard: React.FC = () => {
               <Bar dataKey="Receitas" fill="#10b981" radius={[8, 8, 0, 0]} />
               <Bar dataKey="Compras" fill="#0ea5e9" radius={[8, 8, 0, 0]} />
               <Bar dataKey="Despesas Fixas" fill="#f59e0b" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="Despesas Gerais" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
               <Bar dataKey="Lucro" fill={stats.lucroLiquido >= 0 ? '#10b981' : '#ef4444'} radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -305,7 +309,8 @@ export const Dashboard: React.FC = () => {
                 data={[
                   { name: 'Compras', value: stats.totalCompras },
                   { name: 'Despesas Fixas', value: stats.despesasFixas },
-                ]}
+                  { name: 'Despesas Gerais', value: stats.despesasGerais },
+                ].filter(item => item.value > 0)}
                 dataKey="value"
                 nameKey="name"
                 cx="50%"
@@ -315,6 +320,7 @@ export const Dashboard: React.FC = () => {
               >
                 <Cell fill="#0ea5e9" />
                 <Cell fill="#f59e0b" />
+                <Cell fill="#8b5cf6" />
               </Pie>
               <Tooltip
                 formatter={(value: number) => formatCurrency(value)}
