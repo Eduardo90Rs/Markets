@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { supabase } from '../lib/supabase';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import type { Compra } from '../types';

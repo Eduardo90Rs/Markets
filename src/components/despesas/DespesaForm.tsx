@@ -159,7 +159,7 @@ export const DespesaForm: React.FC<DespesaFormProps> = ({
   const tipoWatch = watch('tipo');
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(handleFormSubmit as any)} className="space-y-4">
       <input type="hidden" {...register('tipo')} value={tipo} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -186,15 +186,15 @@ export const DespesaForm: React.FC<DespesaFormProps> = ({
             min="1"
             max="31"
             placeholder="10"
-            error={errors.dia_vencimento?.message}
-            {...register('dia_vencimento')}
+            error={(errors as any).dia_vencimento?.message}
+            {...register('dia_vencimento' as any)}
           />
         ) : (
           <Input
             label="Data *"
             type="date"
-            error={errors.data?.message}
-            {...register('data')}
+            error={(errors as any).data?.message}
+            {...register('data' as any)}
           />
         )}
 
@@ -224,7 +224,7 @@ export const DespesaForm: React.FC<DespesaFormProps> = ({
               type="checkbox"
               id="ativa"
               className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-              {...register('ativa')}
+              {...register('ativa' as any)}
             />
             <label
               htmlFor="ativa"

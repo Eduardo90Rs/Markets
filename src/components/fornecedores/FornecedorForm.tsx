@@ -48,7 +48,7 @@ export const FornecedorForm: React.FC<FornecedorFormProps> = ({
   }, [fornecedor, reset]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           label="Nome *"

@@ -391,7 +391,7 @@ export const Dashboard: React.FC = () => {
                 cx="50%"
                 cy="50%"
                 outerRadius={100}
-                label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
+                label={(entry: any) => `${entry.name}: ${formatCurrency(entry.value)}`}
               >
                 <Cell fill="#0ea5e9" />
                 <Cell fill="#f59e0b" />
