@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Filter, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, Filter, FileText } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button, Card, Modal, Select, MonthYearPicker } from '../components/ui';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, ShoppingBag, Users, AlertCircle, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { DollarSign, ShoppingBag, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -432,8 +432,8 @@ export const Dashboard: React.FC = () => {
                   }}
                 />
                 <Bar dataKey="valor" radius={[8, 8, 0, 0]}>
-                  {gastosPorFornecedor.slice(0, 5).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={getColorForSupplier(entry.fornecedor, index)} />
+                  {gastosPorFornecedor.slice(0, 5).map((entry) => (
+                    <Cell key={`cell-${entry.fornecedor}`} fill={getColorForSupplier(entry.fornecedor, 0)} />
                   ))}
                 </Bar>
               </BarChart>
