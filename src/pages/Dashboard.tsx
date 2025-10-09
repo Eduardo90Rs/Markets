@@ -146,21 +146,21 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-6 gap-4 overflow-x-auto">
         {/* Receitas Recebidas */}
-        <Card className="!p-6">
+        <Card className="!p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Receitas Recebidas</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+              <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
                 {formatCurrency(stats.receitasRecebidas)}
               </p>
             </div>
-            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
-              <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+            <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-full">
+              <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
           </div>
-          <div className="flex items-center mt-4 text-sm">
+          <div className="flex items-center mt-3 text-sm">
             <span className="text-gray-600 dark:text-gray-400">
               {format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}
             </span>
@@ -168,83 +168,83 @@ export const Dashboard: React.FC = () => {
         </Card>
 
         {/* Receitas Pendentes */}
-        <Card className="!p-6">
+        <Card className="!p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Receitas Pendentes</p>
-              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
+              <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
                 {formatCurrency(stats.receitasPendentes)}
               </p>
             </div>
-            <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-full">
-              <AlertCircle className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+            <div className="bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded-full">
+              <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
             </div>
           </div>
-          <div className="flex items-center mt-4 text-sm">
+          <div className="flex items-center mt-3 text-sm">
             <span className="text-gray-600 dark:text-gray-400">A receber</span>
           </div>
         </Card>
 
         {/* Total Receitas */}
-        <Card className="!p-6">
+        <Card className="!p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Receitas</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">
                 {formatCurrency(stats.totalReceitas)}
               </p>
             </div>
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full">
-              <DollarSign className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-full">
+              <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
-          <div className="flex items-center mt-4 text-sm">
+          <div className="flex items-center mt-3 text-sm">
             <span className="text-gray-600 dark:text-gray-400">Recebido + Pendente</span>
           </div>
         </Card>
 
         {/* Total Compras */}
-        <Card className="!p-6">
+        <Card className="!p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Compras</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
                 {formatCurrency(stats.totalCompras)}
               </p>
             </div>
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full">
-              <ShoppingBag className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-full">
+              <ShoppingBag className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
-          <div className="flex items-center mt-4 text-sm">
+          <div className="flex items-center mt-3 text-sm">
             <span className="text-gray-600 dark:text-gray-400">{stats.numeroCompras} compras</span>
           </div>
         </Card>
 
         {/* Total Despesas */}
-        <Card className="!p-6">
+        <Card className="!p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Despesas</p>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+              <p className="text-xl font-bold text-red-600 dark:text-red-400 mt-1">
                 {formatCurrency(stats.totalDespesas)}
               </p>
             </div>
-            <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full">
-              <TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />
+            <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-full">
+              <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
             </div>
           </div>
-          <div className="flex items-center mt-4 text-sm">
+          <div className="flex items-center mt-3 text-sm">
             <span className="text-gray-600 dark:text-gray-400">Fixas + Gerais + Compras</span>
           </div>
         </Card>
 
         {/* Lucro Líquido */}
-        <Card className="!p-6">
+        <Card className="!p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Lucro Líquido</p>
-              <p className={`text-2xl font-bold mt-1 ${
+              <p className={`text-xl font-bold mt-1 ${
                 stats.lucroLiquido >= 0
                   ? 'text-green-600 dark:text-green-400'
                   : 'text-red-600 dark:text-red-400'
@@ -252,19 +252,19 @@ export const Dashboard: React.FC = () => {
                 {formatCurrency(stats.lucroLiquido)}
               </p>
             </div>
-            <div className={`p-3 rounded-full ${
+            <div className={`p-2 rounded-full ${
               stats.lucroLiquido >= 0
                 ? 'bg-green-100 dark:bg-green-900/30'
                 : 'bg-red-100 dark:bg-red-900/30'
             }`}>
               {stats.lucroLiquido >= 0 ? (
-                <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
               ) : (
-                <TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />
+                <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
               )}
             </div>
           </div>
-          <div className="flex items-center mt-4 text-sm">
+          <div className="flex items-center mt-3 text-sm">
             <span className={`font-medium ${
               stats.lucroLiquido >= 0
                 ? 'text-green-600 dark:text-green-400'
