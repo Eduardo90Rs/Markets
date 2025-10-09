@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -95,16 +95,6 @@ export const Login: React.FC = () => {
               Entrar
             </Button>
           </form>
-
-          <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-            Não tem uma conta?{' '}
-            <Link
-              to="/cadastro"
-              className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
-            >
-              Cadastre-se aqui
-            </Link>
-          </p>
         </div>
       </div>
     </div>

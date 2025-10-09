@@ -5,7 +5,6 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { MainLayout } from './components/layout/MainLayout';
 import { Login } from './pages/Login';
-import { Cadastro } from './pages/Cadastro';
 import { Dashboard } from './pages/Dashboard';
 import { Fornecedores } from './pages/Fornecedores';
 import { Compras } from './pages/Compras';
@@ -21,7 +20,6 @@ function App() {
           <Routes>
             {/* Rotas públicas */}
             <Route path="/login" element={<Login />} />
-            <Route path="/cadastro" element={<Cadastro />} />
 
             {/* Rotas protegidas */}
             <Route
