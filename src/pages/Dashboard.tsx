@@ -430,7 +430,7 @@ export const Dashboard: React.FC = () => {
 
       {/* Análise Financeira */}
       <Card title={`📊 Análise Financeira - ${format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}`}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Status Financeiro</p>
             <p className={`text-xl font-bold ${
@@ -446,15 +446,6 @@ export const Dashboard: React.FC = () => {
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Total de Despesas</p>
             <p className="text-xl font-bold text-red-600 dark:text-red-400">
               {formatCurrency(stats.totalDespesas)}
-            </p>
-          </div>
-
-          <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Ticket Médio</p>
-            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-              {stats.numeroCompras > 0
-                ? formatCurrency(stats.totalCompras / stats.numeroCompras)
-                : formatCurrency(0)}
             </p>
           </div>
 
