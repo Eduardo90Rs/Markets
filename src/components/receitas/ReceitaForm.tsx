@@ -7,7 +7,7 @@ import type { Receita } from '../../types';
 
 const receitaSchema = z.object({
   data: z.string().min(1, 'Data é obrigatória'),
-  descricao: z.string().min(1, 'Descrição é obrigatória'),
+  descricao: z.string().optional(),
   valor: z.coerce.number().positive('Valor deve ser maior que zero'),
   categoria: z.string().min(1, 'Categoria é obrigatória'),
   status_recebimento: z.enum(['recebido', 'pendente']),
@@ -72,7 +72,7 @@ export const ReceitaForm: React.FC<ReceitaFormProps> = ({
         />
 
         <Input
-          label="Descrição *"
+          label="Descrição"
           placeholder="Descrição da receita"
           error={errors.descricao?.message}
           {...register('descricao')}

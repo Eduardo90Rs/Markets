@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, ShoppingBag, Users, AlertCircle, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, startOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, MonthYearPicker } from '../components/ui';
 import { comprasService } from '../services/comprasService';
@@ -24,6 +24,9 @@ export const Dashboard: React.FC = () => {
     despesasFixas: 0,
     despesasGerais: 0,
     totalDespesas: 0,
+    // Despesas pagas (para gráfico)
+    comprasPagas: 0,
+    despesasPagas: 0,
     // Resultado
     lucroLiquido: 0,
     margemLucro: 0,
@@ -46,6 +49,7 @@ export const Dashboard: React.FC = () => {
         comprasStats,
         receitasStats,
         resumoDespesas,
+        comprasPagasData,
         gastos,
         proximas,
         fornecedoresCount,
@@ -53,10 +57,19 @@ export const Dashboard: React.FC = () => {
         comprasService.getMonthStats(selectedMonth),
         receitasService.getMonthStats(selectedMonth),
         despesasService.getResumoDespesasPorMes(selectedMonth),
+        comprasService.getWithFilters({
+          data_inicio: format(startOfMonth(selectedMonth), 'yyyy-MM-dd'),
+          data_fim: format(endOfMonth(selectedMonth), 'yyyy-MM-dd'),
+          status_pagamento: 'pago',
+        }),
         comprasService.getGastosPorFornecedor(selectedMonth),
         comprasService.getProximasVencimento(7),
         fornecedoresService.countAtivos(),
       ]);
+
+      // Calcular valores pagos
+      const comprasPagas = comprasPagasData.reduce((sum, c) => sum + c.valor_total, 0);
+      const despesasPagas = comprasPagas + resumoDespesas.fixas.pagas + resumoDespesas.gerais.pagas;
 
       // Calcular totais
       const totalDespesas = comprasStats.totalGasto + resumoDespesas.total;
@@ -76,6 +89,9 @@ export const Dashboard: React.FC = () => {
         despesasFixas: resumoDespesas.fixas.total,
         despesasGerais: resumoDespesas.gerais.total,
         totalDespesas,
+        // Despesas pagas (para gráfico)
+        comprasPagas,
+        despesasPagas,
         // Resultado
         lucroLiquido,
         margemLucro,
@@ -270,10 +286,7 @@ export const Dashboard: React.FC = () => {
                 {
                   name: 'Financeiro',
                   Receitas: stats.receitasRecebidas,
-                  Compras: stats.totalCompras,
-                  'Despesas Fixas': stats.despesasFixas,
-                  'Despesas Gerais': stats.despesasGerais,
-                  Lucro: stats.lucroLiquido,
+                  Despesas: stats.despesasPagas,
                 }
               ]}
             >
@@ -293,10 +306,7 @@ export const Dashboard: React.FC = () => {
               />
               <Legend />
               <Bar dataKey="Receitas" fill="#10b981" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="Compras" fill="#0ea5e9" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="Despesas Fixas" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="Despesas Gerais" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="Lucro" fill={stats.lucroLiquido >= 0 ? '#10b981' : '#ef4444'} radius={[8, 8, 0, 0]} />
+              <Bar dataKey="Despesas" fill="#ef4444" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
