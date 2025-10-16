@@ -157,6 +157,18 @@ export const Receitas: React.FC = () => {
 
   const categorias = Array.from(new Set(receitas.map((r) => r.categoria)));
 
+  // Verificar se há filtros ativos
+  const hasActiveFilters = filterCategoria || filterDescricao || filterStatus;
+
+  // Calcular totais das receitas filtradas (quando há filtros ativos)
+  const filteredTotalGeral = receitas.reduce((sum, r) => sum + r.valor, 0);
+  const filteredTotalRecebido = receitas
+    .filter((r) => r.status_recebimento === 'recebido')
+    .reduce((sum, r) => sum + r.valor, 0);
+  const filteredTotalPendente = receitas
+    .filter((r) => r.status_recebimento === 'pendente')
+    .reduce((sum, r) => sum + r.valor, 0);
+
   const handleExportPDF = () => {
     if (receitas.length === 0) {
       alert('Nenhuma receita para exportar.');
@@ -231,6 +243,52 @@ export const Receitas: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Resumo de Filtros Ativos */}
+      {hasActiveFilters && receitas.length > 0 && (
+        <Card className="border-2 border-primary-500 dark:border-primary-400">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Resultado dos Filtros
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {receitas.length} receita{receitas.length !== 1 ? 's' : ''} encontrada{receitas.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total Geral</p>
+                <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                  {formatCurrency(filteredTotalGeral)}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Recebido</p>
+                <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                  {formatCurrency(filteredTotalRecebido)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {receitas.filter((r) => r.status_recebimento === 'recebido').length} receita{receitas.filter((r) => r.status_recebimento === 'recebido').length !== 1 ? 's' : ''}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Pendente</p>
+                <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                  {formatCurrency(filteredTotalPendente)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {receitas.filter((r) => r.status_recebimento === 'pendente').length} receita{receitas.filter((r) => r.status_recebimento === 'pendente').length !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Botões de Exportação */}
       {receitas.length > 0 && (
