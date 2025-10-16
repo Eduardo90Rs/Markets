@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { FileDown, FileSpreadsheet, Calendar, TrendingUp } from 'lucide-react';
+import { FileDown, FileSpreadsheet, Calendar, TrendingUp, DollarSign } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Button, Card, Select, Input } from '../components/ui';
 import { comprasService } from '../services/comprasService';
 import { fornecedoresService } from '../services/fornecedoresService';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { RelatorioMensal } from '../components/relatorios/RelatorioMensal';
+import { RelatorioReceitas } from '../components/relatorios/RelatorioReceitas';
 import type { Compra, Fornecedor } from '../types';
 
 export const Relatorios: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'mensal' | 'compras'>('mensal');
+  const [activeTab, setActiveTab] = useState<'mensal' | 'compras' | 'receitas'>('mensal');
   const [compras, setCompras] = useState<Compra[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [loading, setLoading] = useState(false);
@@ -122,11 +123,24 @@ export const Relatorios: React.FC = () => {
           <Calendar className="inline h-4 w-4 mr-2" />
           Relatório de Compras
         </button>
+        <button
+          onClick={() => setActiveTab('receitas')}
+          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+            activeTab === 'receitas'
+              ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+              : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+          }`}
+        >
+          <DollarSign className="inline h-4 w-4 mr-2" />
+          Relatório de Receitas
+        </button>
       </div>
 
       {/* Conteúdo das Tabs */}
       {activeTab === 'mensal' ? (
         <RelatorioMensal />
+      ) : activeTab === 'receitas' ? (
+        <RelatorioReceitas />
       ) : (
         <>
           {/* Filtros */}

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Filter, DollarSign } from 'lucide-react';
+import { Plus, Edit2, Trash2, Filter, DollarSign, FileDown, FileSpreadsheet } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button, Card, Modal, Select, MonthYearPicker } from '../components/ui';
 import { ReceitaForm } from '../components/receitas/ReceitaForm';
 import { receitasService } from '../services/receitasService';
+import { exportReceitasToPDF, exportReceitasToExcel } from '../utils/exportUtils';
 import type { Receita } from '../types';
 
 export const Receitas: React.FC = () => {
@@ -138,6 +139,25 @@ export const Receitas: React.FC = () => {
 
   const categorias = Array.from(new Set(receitas.map((r) => r.categoria)));
 
+  const handleExportPDF = () => {
+    if (receitas.length === 0) {
+      alert('Nenhuma receita para exportar.');
+      return;
+    }
+
+    const title = `Relatório de Receitas - ${format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}`;
+    exportReceitasToPDF(receitas, title);
+  };
+
+  const handleExportExcel = () => {
+    if (receitas.length === 0) {
+      alert('Nenhuma receita para exportar.');
+      return;
+    }
+
+    exportReceitasToExcel(receitas, 'receitas');
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -193,6 +213,32 @@ export const Receitas: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Botões de Exportação */}
+      {receitas.length > 0 && (
+        <Card>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Exportar Receitas
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Exporte as receitas do período selecionado
+              </p>
+            </div>
+            <div className="flex space-x-3">
+              <Button variant="secondary" onClick={handleExportPDF}>
+                <FileDown className="mr-2 h-5 w-5" />
+                Exportar PDF
+              </Button>
+              <Button variant="secondary" onClick={handleExportExcel}>
+                <FileSpreadsheet className="mr-2 h-5 w-5" />
+                Exportar Excel
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Filtros */}
       {showFilters && (

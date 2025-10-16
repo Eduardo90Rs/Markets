@@ -544,3 +544,253 @@ export const exportRelatorioMensalToExcel = (data: RelatorioMensalData) => {
 
   XLSX.writeFile(wb, `relatorio_mensal_${format(data.mes, 'yyyy-MM')}.xlsx`);
 };
+
+export const exportReceitasToPDF = (receitas: Receita[], title: string) => {
+  const doc = new jsPDF();
+
+  // Título
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text(title, 14, 20);
+
+  // Data do relatório
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 28);
+
+  let y = 40;
+
+  // Agrupar receitas por categoria
+  const receitasPorCategoria = receitas.reduce((acc, receita) => {
+    const categoriaNome = receita.categoria || 'Sem categoria';
+
+    if (!acc[categoriaNome]) {
+      acc[categoriaNome] = {
+        nome: categoriaNome,
+        receitas: [],
+        total: 0,
+      };
+    }
+
+    acc[categoriaNome].receitas.push(receita);
+    acc[categoriaNome].total += receita.valor;
+
+    return acc;
+  }, {} as Record<string, { nome: string; receitas: Receita[]; total: number }>);
+
+  // Ordenar categorias por valor total (maior para menor)
+  const categoriasOrdenadas = Object.entries(receitasPorCategoria)
+    .sort(([, a], [, b]) => b.total - a.total);
+
+  // Iterar sobre categorias
+  categoriasOrdenadas.forEach(([, categoria], categoriaIndex) => {
+    // Verifica se precisa de nova página
+    if (y > 250) {
+      doc.addPage();
+      y = 20;
+    }
+
+    // Nome da categoria
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(16, 185, 129); // Cor verde
+    doc.text(`${categoria.nome}`, 14, y);
+    doc.setTextColor(0); // Volta para preto
+    y += 7;
+
+    // Subtotal da categoria
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Subtotal: R$ ${categoria.total.toFixed(2)} | ${categoria.receitas.length} receita${categoria.receitas.length !== 1 ? 's' : ''}`, 14, y);
+    y += 8;
+
+    // Linha separadora
+    doc.setDrawColor(200);
+    doc.line(14, y, 196, y);
+    y += 6;
+
+    // Receitas da categoria
+    categoria.receitas.forEach((receita, receitaIndex) => {
+      // Verifica se precisa de nova página
+      if (y > 265) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+
+      // Data, Descrição e Valor
+      doc.text(`${receitaIndex + 1}. ${format(new Date(receita.data), 'dd/MM/yyyy')} - ${receita.descricao.substring(0, 40)}`, 18, y);
+      y += 5;
+
+      doc.text(`   Valor: R$ ${receita.valor.toFixed(2)}`, 18, y);
+      y += 5;
+
+      // Status
+      const status = receita.status_recebimento === 'recebido' ? '✓ Recebido' : '○ Pendente';
+      doc.text(`   Status: ${status}`, 18, y);
+      y += 5;
+
+      // Observações
+      if (receita.observacoes) {
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.text(`   Obs: ${receita.observacoes.substring(0, 70)}`, 18, y);
+        doc.setTextColor(0);
+        doc.setFontSize(10);
+        y += 5;
+      }
+
+      y += 3; // Espaço entre receitas
+    });
+
+    y += 8; // Espaço entre categorias
+  });
+
+  // Total Geral
+  const totalGeral = receitas.reduce((sum, r) => sum + r.valor, 0);
+  const totalRecebido = receitas
+    .filter((r) => r.status_recebimento === 'recebido')
+    .reduce((sum, r) => sum + r.valor, 0);
+  const totalPendente = receitas
+    .filter((r) => r.status_recebimento === 'pendente')
+    .reduce((sum, r) => sum + r.valor, 0);
+
+  // Linha separadora final
+  if (y > 240) {
+    doc.addPage();
+    y = 20;
+  }
+  doc.setDrawColor(0);
+  doc.line(14, y, 196, y);
+  y += 8;
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`TOTAL GERAL: R$ ${totalGeral.toFixed(2)}`, 14, y);
+  y += 7;
+
+  doc.setFontSize(12);
+  doc.setTextColor(16, 185, 129);
+  doc.text(`Total Recebido: R$ ${totalRecebido.toFixed(2)}`, 14, y);
+  y += 6;
+
+  doc.setTextColor(234, 179, 8);
+  doc.text(`Total Pendente: R$ ${totalPendente.toFixed(2)}`, 14, y);
+
+  doc.save(`relatorio_receitas_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`);
+};
+
+export const exportReceitasToExcel = (receitas: Receita[], fileName: string) => {
+  // Agrupar receitas por categoria
+  const receitasPorCategoria = receitas.reduce((acc, receita) => {
+    const categoriaNome = receita.categoria || 'Sem categoria';
+
+    if (!acc[categoriaNome]) {
+      acc[categoriaNome] = {
+        nome: categoriaNome,
+        receitas: [],
+        total: 0,
+      };
+    }
+
+    acc[categoriaNome].receitas.push(receita);
+    acc[categoriaNome].total += receita.valor;
+
+    return acc;
+  }, {} as Record<string, { nome: string; receitas: Receita[]; total: number }>);
+
+  // Ordenar categorias por valor total (maior para menor)
+  const categoriasOrdenadas = Object.entries(receitasPorCategoria)
+    .sort(([, a], [, b]) => b.total - a.total);
+
+  const data: any[] = [];
+
+  // Iterar sobre categorias
+  categoriasOrdenadas.forEach(([, categoria]) => {
+    // Cabeçalho da categoria
+    data.push({
+      Categoria: categoria.nome,
+      Data: '',
+      Descrição: '',
+      'Valor (R$)': '',
+      Status: '',
+      Observações: '',
+    });
+
+    // Receitas da categoria
+    categoria.receitas.forEach((receita) => {
+      data.push({
+        Categoria: '', // Em branco para não repetir
+        Data: format(new Date(receita.data), 'dd/MM/yyyy'),
+        Descrição: receita.descricao,
+        'Valor (R$)': receita.valor.toFixed(2),
+        Status: receita.status_recebimento === 'recebido' ? 'Recebido' : 'Pendente',
+        Observações: receita.observacoes || '-',
+      });
+    });
+
+    // Subtotal da categoria
+    data.push({
+      Categoria: `Subtotal ${categoria.nome}`,
+      Data: '',
+      Descrição: '',
+      'Valor (R$)': categoria.total.toFixed(2),
+      Status: '',
+      Observações: '',
+    });
+
+    // Linha em branco para separar categorias
+    data.push({
+      Categoria: '',
+      Data: '',
+      Descrição: '',
+      'Valor (R$)': '',
+      Status: '',
+      Observações: '',
+    });
+  });
+
+  // Totais gerais
+  const totalGeral = receitas.reduce((sum, r) => sum + r.valor, 0);
+  const totalRecebido = receitas
+    .filter((r) => r.status_recebimento === 'recebido')
+    .reduce((sum, r) => sum + r.valor, 0);
+  const totalPendente = receitas
+    .filter((r) => r.status_recebimento === 'pendente')
+    .reduce((sum, r) => sum + r.valor, 0);
+
+  data.push({
+    Categoria: 'TOTAL GERAL',
+    Data: '',
+    Descrição: '',
+    'Valor (R$)': totalGeral.toFixed(2),
+    Status: '',
+    Observações: '',
+  });
+
+  data.push({
+    Categoria: 'Total Recebido',
+    Data: '',
+    Descrição: '',
+    'Valor (R$)': totalRecebido.toFixed(2),
+    Status: '',
+    Observações: '',
+  });
+
+  data.push({
+    Categoria: 'Total Pendente',
+    Data: '',
+    Descrição: '',
+    'Valor (R$)': totalPendente.toFixed(2),
+    Status: '',
+    Observações: '',
+  });
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Receitas por Categoria');
+
+  XLSX.writeFile(wb, `${fileName}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.xlsx`);
+};
