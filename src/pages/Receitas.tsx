@@ -249,15 +249,34 @@ export const Receitas: React.FC = () => {
         <Card className="border-2 border-primary-500 dark:border-primary-400">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Resultado dos Filtros
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   {receitas.length} receita{receitas.length !== 1 ? 's' : ''} encontrada{receitas.length !== 1 ? 's' : ''}
                 </p>
+
+                {/* Filtros Ativos */}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {filterCategoria && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                      Categoria: {filterCategoria}
+                    </span>
+                  )}
+                  {filterDescricao && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                      Descrição: {filterDescricao}
+                    </span>
+                  )}
+                  {filterStatus && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                      Status: {filterStatus === 'recebido' ? 'Recebido' : 'Pendente'}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="text-right">
+              <div className="text-right ml-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Geral</p>
                 <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
                   {formatCurrency(filteredTotalGeral)}
