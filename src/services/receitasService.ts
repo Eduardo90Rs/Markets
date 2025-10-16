@@ -151,4 +151,22 @@ export const receitasService = {
       valor,
     }));
   },
+
+  // Buscar descrições únicas já utilizadas
+  async getDescricoesUnicas(): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('receitas')
+      .select('descricao')
+      .not('descricao', 'is', null)
+      .order('descricao', { ascending: true });
+
+    if (error) throw error;
+
+    // Extrair descrições únicas e filtrar valores vazios
+    const descricoesUnicas = Array.from(
+      new Set(data?.map((r: any) => r.descricao).filter((d: string) => d && d.trim() !== ''))
+    );
+
+    return descricoesUnicas;
+  },
 };

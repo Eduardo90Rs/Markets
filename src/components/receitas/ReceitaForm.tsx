@@ -1,9 +1,10 @@
 // @ts-nocheck
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input, Select, Button } from '../ui';
+import { receitasService } from '../../services/receitasService';
 import type { Receita } from '../../types';
 
 const receitaSchema = z.object({
@@ -38,6 +39,8 @@ export const ReceitaForm: React.FC<ReceitaFormProps> = ({
   onCancel,
   loading = false,
 }) => {
+  const [descricoesPrevias, setDescricoesPrevias] = useState<string[]>([]);
+
   const {
     register,
     handleSubmit,
@@ -58,6 +61,20 @@ export const ReceitaForm: React.FC<ReceitaFormProps> = ({
     }
   }, [receita, reset]);
 
+  // Buscar descrições únicas ao carregar o formulário
+  useEffect(() => {
+    const loadDescricoes = async () => {
+      try {
+        const descricoes = await receitasService.getDescricoesUnicas();
+        setDescricoesPrevias(descricoes);
+      } catch (error) {
+        console.error('Erro ao carregar descrições:', error);
+      }
+    };
+
+    loadDescricoes();
+  }, []);
+
   const handleFormSubmit = async (data: ReceitaFormData) => {
     await onSubmit(data);
   };
@@ -72,12 +89,20 @@ export const ReceitaForm: React.FC<ReceitaFormProps> = ({
           {...register('data')}
         />
 
-        <Input
-          label="Descrição"
-          placeholder="Descrição da receita"
-          error={errors.descricao?.message}
-          {...register('descricao')}
-        />
+        <div>
+          <Input
+            label="Descrição"
+            placeholder="Descrição da receita (digite para ver sugestões)"
+            error={errors.descricao?.message}
+            list="descricoes-list"
+            {...register('descricao')}
+          />
+          <datalist id="descricoes-list">
+            {descricoesPrevias.map((desc, index) => (
+              <option key={index} value={desc} />
+            ))}
+          </datalist>
+        </div>
 
         <Input
           label="Valor *"
