@@ -8,12 +8,17 @@ import {
   Download,
   CheckCircle,
   XCircle,
+  FileDown,
+  FileSpreadsheet,
+  Filter,
+  X,
 } from 'lucide-react';
-import { Button, Card, Modal, MonthYearPicker } from '../components/ui';
+import { Button, Card, Modal, MonthYearPicker, Input, Select } from '../components/ui';
 import { DespesaForm } from '../components/despesas/DespesaForm';
 import { despesasService } from '../services/despesasService';
+import { exportDespesasToPDF, exportDespesasToExcel } from '../utils/exportUtils';
 import type { Despesa } from '../types';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 type TabType = 'fixas' | 'gerais';
@@ -26,6 +31,13 @@ export const Despesas: React.FC = () => {
   const [editingDespesa, setEditingDespesa] = useState<Despesa | undefined>();
   const [submitLoading, setSubmitLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+
+  // Filtros
+  const [filterCategoria, setFilterCategoria] = useState('');
+  const [filterDescricao, setFilterDescricao] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [descricoes, setDescricoes] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Stats
   const [resumo, setResumo] = useState({
@@ -56,6 +68,20 @@ export const Despesas: React.FC = () => {
     return () => clearInterval(checkDate);
   }, [selectedMonth]);
 
+  // Carregar descrições únicas para autocomplete
+  useEffect(() => {
+    const loadDescricoes = async () => {
+      try {
+        const descricoesData = await despesasService.getDescricoesUnicas();
+        setDescricoes(descricoesData);
+      } catch (error) {
+        console.error('Erro ao carregar descrições:', error);
+      }
+    };
+
+    loadDescricoes();
+  }, []);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -77,6 +103,61 @@ export const Despesas: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilters = async () => {
+    try {
+      setLoading(true);
+      const inicio = format(startOfMonth(selectedMonth), 'yyyy-MM-dd');
+      const fim = format(endOfMonth(selectedMonth), 'yyyy-MM-dd');
+
+      const filters: any = {
+        data_inicio: inicio,
+        data_fim: fim,
+        tipo: activeTab === 'fixas' ? 'fixa' : 'geral',
+      };
+
+      if (filterCategoria) filters.categoria = filterCategoria;
+      if (filterDescricao) filters.descricao = filterDescricao;
+      if (filterStatus) filters.status_pagamento = filterStatus;
+
+      const despesasData = await despesasService.getWithFilters(filters);
+      setDespesas(despesasData);
+    } catch (error) {
+      console.error('Erro ao aplicar filtros:', error);
+      alert('Erro ao aplicar filtros. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearFilters = () => {
+    setFilterCategoria('');
+    setFilterDescricao('');
+    setFilterStatus('');
+    loadData();
+  };
+
+  const handleExportPDF = () => {
+    if (despesas.length === 0) {
+      alert('Nenhum dado para exportar.');
+      return;
+    }
+
+    const tipoLabel = activeTab === 'fixas' ? 'Fixas' : 'Gerais';
+    const mesAno = format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR });
+    const title = `Relatório de Despesas ${tipoLabel} - ${mesAno}`;
+    exportDespesasToPDF(despesas, title);
+  };
+
+  const handleExportExcel = () => {
+    if (despesas.length === 0) {
+      alert('Nenhum dado para exportar.');
+      return;
+    }
+
+    const tipoLabel = activeTab === 'fixas' ? 'fixas' : 'gerais';
+    exportDespesasToExcel(despesas, `relatorio_despesas_${tipoLabel}`);
   };
 
   const handleCreate = () => {
@@ -153,6 +234,40 @@ export const Despesas: React.FC = () => {
 
   const resumoAtivo = activeTab === 'fixas' ? resumo.fixas : resumo.gerais;
 
+  // Verificar se há filtros ativos
+  const hasActiveFilters = filterCategoria || filterDescricao || filterStatus;
+
+  // Calcular totais filtrados se houver filtros ativos
+  const filteredTotals = hasActiveFilters
+    ? {
+        totalGeral: despesas.reduce((sum, d) => sum + d.valor, 0),
+        totalPago: despesas
+          .filter((d) => d.status_pagamento === 'pago')
+          .reduce((sum, d) => sum + d.valor, 0),
+        totalPendente: despesas
+          .filter((d) => d.status_pagamento === 'pendente')
+          .reduce((sum, d) => sum + d.valor, 0),
+      }
+    : null;
+
+  // Categorias comuns
+  const categoriasComuns = [
+    'Aluguel',
+    'Energia',
+    'Água',
+    'Internet',
+    'Telefone',
+    'Salários',
+    'Impostos',
+    'Seguros',
+    'Manutenção',
+    'Marketing',
+    'Limpeza',
+    'Contabilidade',
+    'Material de Escritório',
+    'Outros',
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -216,6 +331,145 @@ export const Despesas: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Filtros */}
+      <Card>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <Filter className="mr-2 h-5 w-5" />
+            Filtros
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            {showFilters ? 'Ocultar' : 'Mostrar'}
+          </Button>
+        </div>
+
+        {showFilters && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Select
+                label="Categoria"
+                options={[
+                  { value: '', label: 'Todas as categorias' },
+                  ...categoriasComuns.map((cat) => ({ value: cat, label: cat })),
+                ]}
+                value={filterCategoria}
+                onChange={(e) => setFilterCategoria(e.target.value)}
+              />
+
+              <Select
+                label="Descrição"
+                options={[
+                  { value: '', label: 'Todas as descrições' },
+                  ...descricoes.map((desc) => ({ value: desc, label: desc })),
+                ]}
+                value={filterDescricao}
+                onChange={(e) => setFilterDescricao(e.target.value)}
+              />
+
+              <Select
+                label="Status"
+                options={[
+                  { value: '', label: 'Todos' },
+                  { value: 'pago', label: 'Pago' },
+                  { value: 'pendente', label: 'Pendente' },
+                ]}
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-4">
+              <Button variant="secondary" onClick={clearFilters}>
+                <X className="mr-2 h-4 w-4" />
+                Limpar
+              </Button>
+              <Button onClick={applyFilters}>
+                <Filter className="mr-2 h-4 w-4" />
+                Aplicar Filtros
+              </Button>
+            </div>
+          </>
+        )}
+      </Card>
+
+      {/* Card de Resumo dos Filtros */}
+      {hasActiveFilters && despesas.length > 0 && (
+        <Card className="border-2 border-primary-500 dark:border-primary-400">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Resultado dos Filtros
+              </h3>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {filterCategoria && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                    Categoria: {filterCategoria}
+                  </span>
+                )}
+                {filterDescricao && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                    Descrição: {filterDescricao}
+                  </span>
+                )}
+                {filterStatus && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                    Status: {filterStatus === 'pago' ? 'Pago' : 'Pendente'}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600 dark:text-gray-400">Total Geral</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(filteredTotals?.totalGeral || 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600 dark:text-gray-400">Pago</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                    {formatCurrency(filteredTotals?.totalPago || 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600 dark:text-gray-400">Pendente</p>
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">
+                    {formatCurrency(filteredTotals?.totalPendente || 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Export Buttons */}
+      <Card>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Exportar Despesas
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Exporte os dados da aba atual para PDF ou Excel
+            </p>
+          </div>
+          <div className="flex space-x-3">
+            <Button variant="secondary" onClick={handleExportPDF}>
+              <FileDown className="mr-2 h-5 w-5" />
+              Exportar PDF
+            </Button>
+            <Button variant="secondary" onClick={handleExportExcel}>
+              <FileSpreadsheet className="mr-2 h-5 w-5" />
+              Exportar Excel
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">

@@ -794,3 +794,274 @@ export const exportReceitasToExcel = (receitas: Receita[], fileName: string) => 
 
   XLSX.writeFile(wb, `${fileName}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.xlsx`);
 };
+
+export const exportDespesasToPDF = (despesas: Despesa[], title: string) => {
+  const doc = new jsPDF();
+
+  // Título
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text(title, 14, 20);
+
+  // Data do relatório
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 28);
+
+  let y = 40;
+
+  // Agrupar despesas por categoria
+  const despesasPorCategoria = despesas.reduce((acc, despesa) => {
+    const categoriaNome = despesa.categoria || 'Sem categoria';
+
+    if (!acc[categoriaNome]) {
+      acc[categoriaNome] = {
+        nome: categoriaNome,
+        despesas: [],
+        total: 0,
+      };
+    }
+
+    acc[categoriaNome].despesas.push(despesa);
+    acc[categoriaNome].total += despesa.valor;
+
+    return acc;
+  }, {} as Record<string, { nome: string; despesas: Despesa[]; total: number }>);
+
+  // Ordenar categorias por valor total (maior para menor)
+  const categoriasOrdenadas = Object.entries(despesasPorCategoria)
+    .sort(([, a], [, b]) => b.total - a.total);
+
+  // Iterar sobre categorias
+  categoriasOrdenadas.forEach(([, categoria], categoriaIndex) => {
+    // Verifica se precisa de nova página
+    if (y > 250) {
+      doc.addPage();
+      y = 20;
+    }
+
+    // Nome da categoria
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(220, 38, 38); // Cor vermelha
+    doc.text(`${categoria.nome}`, 14, y);
+    doc.setTextColor(0); // Volta para preto
+    y += 7;
+
+    // Subtotal da categoria
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Subtotal: R$ ${categoria.total.toFixed(2)} | ${categoria.despesas.length} despesa${categoria.despesas.length !== 1 ? 's' : ''}`, 14, y);
+    y += 8;
+
+    // Linha separadora
+    doc.setDrawColor(200);
+    doc.line(14, y, 196, y);
+    y += 6;
+
+    // Despesas da categoria
+    categoria.despesas.forEach((despesa, despesaIndex) => {
+      // Verifica se precisa de nova página
+      if (y > 260) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+
+      // Tipo e Descrição
+      const tipoLabel = despesa.tipo === 'fixa' ? '[Fixa]' : '[Geral]';
+      doc.text(`${despesaIndex + 1}. ${tipoLabel} ${despesa.descricao.substring(0, 35)}`, 18, y);
+      y += 5;
+
+      // Data/Vencimento e Valor
+      if (despesa.tipo === 'fixa') {
+        doc.text(`   Vencimento: Dia ${despesa.dia_vencimento} | Valor: R$ ${despesa.valor.toFixed(2)}`, 18, y);
+      } else {
+        const dataFormatada = despesa.data ? format(new Date(despesa.data), 'dd/MM/yyyy') : '-';
+        doc.text(`   Data: ${dataFormatada} | Valor: R$ ${despesa.valor.toFixed(2)}`, 18, y);
+      }
+      y += 5;
+
+      // Status
+      const status = despesa.status_pagamento === 'pago' ? '✓ Pago' : '○ Pendente';
+      doc.text(`   Status: ${status}`, 18, y);
+      y += 5;
+
+      // Observações
+      if (despesa.observacoes) {
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        doc.text(`   Obs: ${despesa.observacoes.substring(0, 70)}`, 18, y);
+        doc.setTextColor(0);
+        doc.setFontSize(10);
+        y += 5;
+      }
+
+      y += 3; // Espaço entre despesas
+    });
+
+    y += 8; // Espaço entre categorias
+  });
+
+  // Total Geral
+  const totalGeral = despesas.reduce((sum, d) => sum + d.valor, 0);
+  const totalPago = despesas
+    .filter((d) => d.status_pagamento === 'pago')
+    .reduce((sum, d) => sum + d.valor, 0);
+  const totalPendente = despesas
+    .filter((d) => d.status_pagamento === 'pendente')
+    .reduce((sum, d) => sum + d.valor, 0);
+
+  // Linha separadora final
+  if (y > 240) {
+    doc.addPage();
+    y = 20;
+  }
+  doc.setDrawColor(0);
+  doc.line(14, y, 196, y);
+  y += 8;
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`TOTAL GERAL: R$ ${totalGeral.toFixed(2)}`, 14, y);
+  y += 7;
+
+  doc.setFontSize(12);
+  doc.setTextColor(22, 163, 74);
+  doc.text(`Total Pago: R$ ${totalPago.toFixed(2)}`, 14, y);
+  y += 6;
+
+  doc.setTextColor(234, 179, 8);
+  doc.text(`Total Pendente: R$ ${totalPendente.toFixed(2)}`, 14, y);
+
+  doc.save(`relatorio_despesas_${format(new Date(), 'yyyy-MM-dd_HHmm')}.pdf`);
+};
+
+export const exportDespesasToExcel = (despesas: Despesa[], fileName: string) => {
+  // Agrupar despesas por categoria
+  const despesasPorCategoria = despesas.reduce((acc, despesa) => {
+    const categoriaNome = despesa.categoria || 'Sem categoria';
+
+    if (!acc[categoriaNome]) {
+      acc[categoriaNome] = {
+        nome: categoriaNome,
+        despesas: [],
+        total: 0,
+      };
+    }
+
+    acc[categoriaNome].despesas.push(despesa);
+    acc[categoriaNome].total += despesa.valor;
+
+    return acc;
+  }, {} as Record<string, { nome: string; despesas: Despesa[]; total: number }>);
+
+  // Ordenar categorias por valor total (maior para menor)
+  const categoriasOrdenadas = Object.entries(despesasPorCategoria)
+    .sort(([, a], [, b]) => b.total - a.total);
+
+  const data: any[] = [];
+
+  // Iterar sobre categorias
+  categoriasOrdenadas.forEach(([, categoria]) => {
+    // Cabeçalho da categoria
+    data.push({
+      Categoria: categoria.nome,
+      Tipo: '',
+      Data: '',
+      'Dia Vencimento': '',
+      Descrição: '',
+      'Valor (R$)': '',
+      Status: '',
+      Observações: '',
+    });
+
+    // Despesas da categoria
+    categoria.despesas.forEach((despesa) => {
+      data.push({
+        Categoria: '', // Em branco para não repetir
+        Tipo: despesa.tipo === 'fixa' ? 'Fixa' : 'Geral',
+        Data: despesa.tipo === 'geral' && despesa.data ? format(new Date(despesa.data), 'dd/MM/yyyy') : '-',
+        'Dia Vencimento': despesa.tipo === 'fixa' && despesa.dia_vencimento ? `Dia ${despesa.dia_vencimento}` : '-',
+        Descrição: despesa.descricao,
+        'Valor (R$)': despesa.valor.toFixed(2),
+        Status: despesa.status_pagamento === 'pago' ? 'Pago' : 'Pendente',
+        Observações: despesa.observacoes || '-',
+      });
+    });
+
+    // Subtotal da categoria
+    data.push({
+      Categoria: `Subtotal ${categoria.nome}`,
+      Tipo: '',
+      Data: '',
+      'Dia Vencimento': '',
+      Descrição: '',
+      'Valor (R$)': categoria.total.toFixed(2),
+      Status: '',
+      Observações: '',
+    });
+
+    // Linha em branco para separar categorias
+    data.push({
+      Categoria: '',
+      Tipo: '',
+      Data: '',
+      'Dia Vencimento': '',
+      Descrição: '',
+      'Valor (R$)': '',
+      Status: '',
+      Observações: '',
+    });
+  });
+
+  // Totais gerais
+  const totalGeral = despesas.reduce((sum, d) => sum + d.valor, 0);
+  const totalPago = despesas
+    .filter((d) => d.status_pagamento === 'pago')
+    .reduce((sum, d) => sum + d.valor, 0);
+  const totalPendente = despesas
+    .filter((d) => d.status_pagamento === 'pendente')
+    .reduce((sum, d) => sum + d.valor, 0);
+
+  data.push({
+    Categoria: 'TOTAL GERAL',
+    Tipo: '',
+    Data: '',
+    'Dia Vencimento': '',
+    Descrição: '',
+    'Valor (R$)': totalGeral.toFixed(2),
+    Status: '',
+    Observações: '',
+  });
+
+  data.push({
+    Categoria: 'Total Pago',
+    Tipo: '',
+    Data: '',
+    'Dia Vencimento': '',
+    Descrição: '',
+    'Valor (R$)': totalPago.toFixed(2),
+    Status: '',
+    Observações: '',
+  });
+
+  data.push({
+    Categoria: 'Total Pendente',
+    Tipo: '',
+    Data: '',
+    'Dia Vencimento': '',
+    Descrição: '',
+    'Valor (R$)': totalPendente.toFixed(2),
+    Status: '',
+    Observações: '',
+  });
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Despesas por Categoria');
+
+  XLSX.writeFile(wb, `${fileName}_${format(new Date(), 'yyyy-MM-dd_HHmm')}.xlsx`);
+};

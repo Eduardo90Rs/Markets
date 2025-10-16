@@ -357,4 +357,117 @@ export const despesasService = {
     if (error) throw error;
     return data || [];
   },
+
+  // Buscar descrições únicas já utilizadas (fixas e gerais)
+  async getDescricoesUnicas(): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('despesas')
+      .select('descricao')
+      .not('descricao', 'is', null)
+      .order('descricao', { ascending: true });
+
+    if (error) throw error;
+
+    // Extrair descrições únicas e filtrar valores vazios
+    const descricoesUnicas = Array.from(
+      new Set(data?.map((d: any) => d.descricao).filter((desc: string) => desc && desc.trim() !== ''))
+    );
+
+    return descricoesUnicas;
+  },
+
+  // Listar despesas com filtros (fixas e gerais combinadas)
+  async getWithFilters(filters: {
+    data_inicio?: string;
+    data_fim?: string;
+    categoria?: string;
+    descricao?: string;
+    status_pagamento?: 'pago' | 'pendente';
+    tipo?: 'fixa' | 'geral';
+  }): Promise<Despesa[]> {
+    let query = supabase.from('despesas').select('*');
+
+    // Filtro por tipo (opcional)
+    if (filters.tipo) {
+      query = query.eq('tipo', filters.tipo);
+    }
+
+    // Filtro por categoria
+    if (filters.categoria) {
+      query = query.eq('categoria', filters.categoria);
+    }
+
+    // Filtro por descrição
+    if (filters.descricao) {
+      query = query.eq('descricao', filters.descricao);
+    }
+
+    // Filtro por status
+    if (filters.status_pagamento) {
+      query = query.eq('status_pagamento', filters.status_pagamento);
+    }
+
+    // Filtro por data - para despesas gerais usamos 'data', para fixas usamos 'mes_referencia'
+    // Como a query do Supabase não permite OR direto em filtros complexos, precisamos fazer duas queries
+    if (filters.data_inicio && filters.data_fim) {
+      // Se um tipo específico foi fornecido, filtramos normalmente
+      if (filters.tipo === 'geral') {
+        query = query.gte('data', filters.data_inicio).lte('data', filters.data_fim);
+      } else if (filters.tipo === 'fixa') {
+        query = query.gte('mes_referencia', filters.data_inicio).lte('mes_referencia', filters.data_fim);
+      } else {
+        // Se nenhum tipo específico, fazemos duas queries e combinamos
+        const queryFixas = supabase
+          .from('despesas')
+          .select('*')
+          .eq('tipo', 'fixa')
+          .gte('mes_referencia', filters.data_inicio)
+          .lte('mes_referencia', filters.data_fim);
+
+        const queryGerais = supabase
+          .from('despesas')
+          .select('*')
+          .eq('tipo', 'geral')
+          .gte('data', filters.data_inicio)
+          .lte('data', filters.data_fim);
+
+        // Aplicar filtros comuns em ambas as queries
+        if (filters.categoria) {
+          queryFixas.eq('categoria', filters.categoria);
+          queryGerais.eq('categoria', filters.categoria);
+        }
+        if (filters.descricao) {
+          queryFixas.eq('descricao', filters.descricao);
+          queryGerais.eq('descricao', filters.descricao);
+        }
+        if (filters.status_pagamento) {
+          queryFixas.eq('status_pagamento', filters.status_pagamento);
+          queryGerais.eq('status_pagamento', filters.status_pagamento);
+        }
+
+        const [resultFixas, resultGerais] = await Promise.all([queryFixas, queryGerais]);
+
+        if (resultFixas.error) throw resultFixas.error;
+        if (resultGerais.error) throw resultGerais.error;
+
+        const despesas = [...(resultFixas.data || []), ...(resultGerais.data || [])];
+
+        // Ordenar por data (para fixas usar mes_referencia, para gerais usar data)
+        despesas.sort((a, b) => {
+          const dataA = a.tipo === 'fixa' ? a.mes_referencia : a.data;
+          const dataB = b.tipo === 'fixa' ? b.mes_referencia : b.data;
+          return new Date(dataB).getTime() - new Date(dataA).getTime();
+        });
+
+        return despesas;
+      }
+    }
+
+    // Ordenar por data de criação
+    query = query.order('criado_em', { ascending: false });
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
 };

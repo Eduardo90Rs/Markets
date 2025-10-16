@@ -1,9 +1,10 @@
 // @ts-nocheck
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input, Select, Button } from '../ui';
+import { despesasService } from '../../services/despesasService';
 import type { Despesa } from '../../types';
 import { format, startOfMonth } from 'date-fns';
 
@@ -71,6 +72,8 @@ export const DespesaForm: React.FC<DespesaFormProps> = ({
   tipo,
   mesReferencia = new Date(),
 }) => {
+  const [descricoesPrevias, setDescricoesPrevias] = useState<string[]>([]);
+
   const {
     register,
     handleSubmit,
@@ -132,6 +135,20 @@ export const DespesaForm: React.FC<DespesaFormProps> = ({
     }
   }, [despesa, reset]);
 
+  // Buscar descrições únicas ao carregar o formulário
+  useEffect(() => {
+    const loadDescricoes = async () => {
+      try {
+        const descricoes = await despesasService.getDescricoesUnicas();
+        setDescricoesPrevias(descricoes);
+      } catch (error) {
+        console.error('Erro ao carregar descrições:', error);
+      }
+    };
+
+    loadDescricoes();
+  }, []);
+
   const handleFormSubmit = async (data: DespesaFormData) => {
     const submitData: any = {
       tipo: data.tipo,
@@ -164,12 +181,20 @@ export const DespesaForm: React.FC<DespesaFormProps> = ({
       <input type="hidden" {...register('tipo')} value={tipo} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Descrição *"
-          placeholder={tipo === 'fixa' ? 'Ex: Aluguel do imóvel' : 'Ex: Reparo no ar-condicionado'}
-          error={errors.descricao?.message}
-          {...register('descricao')}
-        />
+        <div>
+          <Input
+            label="Descrição *"
+            placeholder={tipo === 'fixa' ? 'Ex: Aluguel do imóvel (digite para ver sugestões)' : 'Ex: Reparo no ar-condicionado (digite para ver sugestões)'}
+            error={errors.descricao?.message}
+            list="descricoes-list"
+            {...register('descricao')}
+          />
+          <datalist id="descricoes-list">
+            {descricoesPrevias.map((desc, index) => (
+              <option key={index} value={desc} />
+            ))}
+          </datalist>
+        </div>
 
         <Input
           label="Valor *"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileDown, FileSpreadsheet, Calendar, TrendingUp, DollarSign } from 'lucide-react';
+import { FileDown, FileSpreadsheet, Calendar, TrendingUp, DollarSign, CreditCard } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Button, Card, Select, Input } from '../components/ui';
 import { comprasService } from '../services/comprasService';
@@ -7,10 +7,11 @@ import { fornecedoresService } from '../services/fornecedoresService';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { RelatorioMensal } from '../components/relatorios/RelatorioMensal';
 import { RelatorioReceitas } from '../components/relatorios/RelatorioReceitas';
+import { RelatorioDespesas } from '../components/relatorios/RelatorioDespesas';
 import type { Compra, Fornecedor } from '../types';
 
 export const Relatorios: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'mensal' | 'compras' | 'receitas'>('mensal');
+  const [activeTab, setActiveTab] = useState<'mensal' | 'compras' | 'receitas' | 'despesas'>('mensal');
   const [compras, setCompras] = useState<Compra[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [loading, setLoading] = useState(false);
@@ -134,6 +135,17 @@ export const Relatorios: React.FC = () => {
           <DollarSign className="inline h-4 w-4 mr-2" />
           Relatório de Receitas
         </button>
+        <button
+          onClick={() => setActiveTab('despesas')}
+          className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+            activeTab === 'despesas'
+              ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+              : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+          }`}
+        >
+          <CreditCard className="inline h-4 w-4 mr-2" />
+          Relatório de Despesas
+        </button>
       </div>
 
       {/* Conteúdo das Tabs */}
@@ -141,6 +153,8 @@ export const Relatorios: React.FC = () => {
         <RelatorioMensal />
       ) : activeTab === 'receitas' ? (
         <RelatorioReceitas />
+      ) : activeTab === 'despesas' ? (
+        <RelatorioDespesas />
       ) : (
         <>
           {/* Filtros */}
