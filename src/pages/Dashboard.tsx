@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, ShoppingBag, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, MonthYearPicker } from '../components/ui';
 import { comprasService } from '../services/comprasService';
@@ -519,7 +519,7 @@ export const Dashboard: React.FC = () => {
                     {receita.descricao}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Data: {format(new Date(receita.data), "dd 'de' MMMM", { locale: ptBR })} • {receita.categoria}
+                    Data: {format(parseISO(receita.data), "dd 'de' MMMM", { locale: ptBR })} • {receita.categoria}
                   </p>
                 </div>
                 <p className="text-lg font-bold text-blue-700 dark:text-blue-400">
@@ -547,7 +547,7 @@ export const Dashboard: React.FC = () => {
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Vencimento:{' '}
                     {compra.data_vencimento &&
-                      format(new Date(compra.data_vencimento), "dd 'de' MMMM", {
+                      format(parseISO(compra.data_vencimento), "dd 'de' MMMM", {
                         locale: ptBR,
                       })}
                   </p>

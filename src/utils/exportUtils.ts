@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Compra, Receita, Despesa } from '../types';
 
@@ -104,7 +104,7 @@ export const exportToPDF = (compras: Compra[], title: string) => {
       doc.setFont('helvetica', 'normal');
 
       // Data e Valor
-      doc.text(`${compraIndex + 1}. Data: ${format(new Date(compra.data_compra), 'dd/MM/yyyy')} | Valor: R$ ${compra.valor_total.toFixed(2)}`, 18, y);
+      doc.text(`${compraIndex + 1}. Data: ${format(parseISO(compra.data_compra), 'dd/MM/yyyy')} | Valor: R$ ${compra.valor_total.toFixed(2)}`, 18, y);
       y += 5;
 
       // Forma de pagamento e Status
@@ -115,7 +115,7 @@ export const exportToPDF = (compras: Compra[], title: string) => {
       // NF e Vencimento
       if (compra.numero_nf || compra.data_vencimento) {
         const nf = compra.numero_nf || '-';
-        const venc = compra.data_vencimento ? format(new Date(compra.data_vencimento), 'dd/MM/yyyy') : '-';
+        const venc = compra.data_vencimento ? format(parseISO(compra.data_vencimento), 'dd/MM/yyyy') : '-';
         doc.text(`   NF: ${nf} | Vencimento: ${venc}`, 18, y);
         y += 5;
       }
@@ -199,13 +199,13 @@ export const exportToExcel = (compras: Compra[], fileName: string) => {
     fornecedor.compras.forEach((compra) => {
       data.push({
         Fornecedor: '', // Em branco para não repetir
-        Data: format(new Date(compra.data_compra), 'dd/MM/yyyy'),
+        Data: format(parseISO(compra.data_compra), 'dd/MM/yyyy'),
         'Valor (R$)': compra.valor_total.toFixed(2),
         Pagamento: compra.forma_pagamento,
         Status: compra.status_pagamento === 'pago' ? 'Pago' : 'Pendente',
         NF: compra.numero_nf || '-',
         Vencimento: compra.data_vencimento
-          ? format(new Date(compra.data_vencimento), 'dd/MM/yyyy')
+          ? format(parseISO(compra.data_vencimento), 'dd/MM/yyyy')
           : '-',
         Observações: compra.observacoes || '-',
       });
@@ -379,7 +379,7 @@ export const exportRelatorioMensalToPDF = (data: RelatorioMensalData) => {
 
       const status = receita.status_recebimento === 'recebido' ? '✓' : '○';
       doc.text(
-        `${status} ${format(new Date(receita.data), 'dd/MM')} - ${receita.descricao.substring(0, 35)} - R$ ${receita.valor.toFixed(2)}`,
+        `${status} ${format(parseISO(receita.data), 'dd/MM')} - ${receita.descricao.substring(0, 35)} - R$ ${receita.valor.toFixed(2)}`,
         14,
         y
       );
@@ -436,7 +436,7 @@ export const exportRelatorioMensalToPDF = (data: RelatorioMensalData) => {
           y = 20;
         }
 
-        const dataFormatada = despesa.data ? format(new Date(despesa.data), 'dd/MM') : '-';
+        const dataFormatada = despesa.data ? format(parseISO(despesa.data), 'dd/MM') : '-';
         doc.text(
           `${dataFormatada} - ${despesa.descricao.substring(0, 40)} - R$ ${despesa.valor.toFixed(2)}`,
           14,
@@ -490,7 +490,7 @@ export const exportRelatorioMensalToExcel = (data: RelatorioMensalData) => {
 
   // Aba 2: Receitas
   const receitasSheet = data.receitas.dados.map((receita) => ({
-    Data: format(new Date(receita.data), 'dd/MM/yyyy'),
+    Data: format(parseISO(receita.data), 'dd/MM/yyyy'),
     Descrição: receita.descricao,
     'Valor (R$)': receita.valor.toFixed(2),
     Categoria: receita.categoria,
@@ -500,7 +500,7 @@ export const exportRelatorioMensalToExcel = (data: RelatorioMensalData) => {
 
   // Aba 3: Compras
   const comprasSheet = data.compras.dados.map((compra) => ({
-    Data: format(new Date(compra.data_compra), 'dd/MM/yyyy'),
+    Data: format(parseISO(compra.data_compra), 'dd/MM/yyyy'),
     Fornecedor: compra.fornecedores?.nome || 'Não encontrado',
     'Valor (R$)': compra.valor_total.toFixed(2),
     'Forma de Pagamento': compra.forma_pagamento,
@@ -511,7 +511,7 @@ export const exportRelatorioMensalToExcel = (data: RelatorioMensalData) => {
   // Aba 4: Despesas (Fixas + Gerais)
   const despesasSheet = data.despesas.dados.map((despesa) => ({
     Tipo: despesa.tipo === 'fixa' ? 'Fixa' : 'Geral',
-    Data: despesa.tipo === 'geral' && despesa.data ? format(new Date(despesa.data), 'dd/MM/yyyy') : '-',
+    Data: despesa.tipo === 'geral' && despesa.data ? format(parseISO(despesa.data), 'dd/MM/yyyy') : '-',
     'Dia Vencimento': despesa.tipo === 'fixa' && despesa.dia_vencimento ? despesa.dia_vencimento : '-',
     Descrição: despesa.descricao,
     'Valor (R$)': despesa.valor.toFixed(2),
@@ -621,7 +621,7 @@ export const exportReceitasToPDF = (receitas: Receita[], title: string) => {
       doc.setFont('helvetica', 'normal');
 
       // Data, Descrição e Valor
-      doc.text(`${receitaIndex + 1}. ${format(new Date(receita.data), 'dd/MM/yyyy')} - ${receita.descricao.substring(0, 40)}`, 18, y);
+      doc.text(`${receitaIndex + 1}. ${format(parseISO(receita.data), 'dd/MM/yyyy')} - ${receita.descricao.substring(0, 40)}`, 18, y);
       y += 5;
 
       doc.text(`   Valor: R$ ${receita.valor.toFixed(2)}`, 18, y);
@@ -723,7 +723,7 @@ export const exportReceitasToExcel = (receitas: Receita[], fileName: string) => 
     categoria.receitas.forEach((receita) => {
       data.push({
         Categoria: '', // Em branco para não repetir
-        Data: format(new Date(receita.data), 'dd/MM/yyyy'),
+        Data: format(parseISO(receita.data), 'dd/MM/yyyy'),
         Descrição: receita.descricao,
         'Valor (R$)': receita.valor.toFixed(2),
         Status: receita.status_recebimento === 'recebido' ? 'Recebido' : 'Pendente',
@@ -879,7 +879,7 @@ export const exportDespesasToPDF = (despesas: Despesa[], title: string) => {
       if (despesa.tipo === 'fixa') {
         doc.text(`   Vencimento: Dia ${despesa.dia_vencimento} | Valor: R$ ${despesa.valor.toFixed(2)}`, 18, y);
       } else {
-        const dataFormatada = despesa.data ? format(new Date(despesa.data), 'dd/MM/yyyy') : '-';
+        const dataFormatada = despesa.data ? format(parseISO(despesa.data), 'dd/MM/yyyy') : '-';
         doc.text(`   Data: ${dataFormatada} | Valor: R$ ${despesa.valor.toFixed(2)}`, 18, y);
       }
       y += 5;
@@ -983,7 +983,7 @@ export const exportDespesasToExcel = (despesas: Despesa[], fileName: string) => 
       data.push({
         Categoria: '', // Em branco para não repetir
         Tipo: despesa.tipo === 'fixa' ? 'Fixa' : 'Geral',
-        Data: despesa.tipo === 'geral' && despesa.data ? format(new Date(despesa.data), 'dd/MM/yyyy') : '-',
+        Data: despesa.tipo === 'geral' && despesa.data ? format(parseISO(despesa.data), 'dd/MM/yyyy') : '-',
         'Dia Vencimento': despesa.tipo === 'fixa' && despesa.dia_vencimento ? `Dia ${despesa.dia_vencimento}` : '-',
         Descrição: despesa.descricao,
         'Valor (R$)': despesa.valor.toFixed(2),

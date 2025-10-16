@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileDown, FileSpreadsheet, Calendar, DollarSign } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { Button, Card, Select, Input } from '../ui';
 import { despesasService } from '../../services/despesasService';
 import { exportDespesasToPDF, exportDespesasToExcel } from '../../utils/exportUtils';
@@ -63,7 +63,7 @@ export const RelatorioDespesas: React.FC = () => {
       return;
     }
 
-    const title = `Relatório de Despesas - ${format(new Date(dataInicio), 'dd/MM/yyyy')} a ${format(new Date(dataFim), 'dd/MM/yyyy')}`;
+    const title = `Relatório de Despesas - ${format(parseISO(dataInicio), 'dd/MM/yyyy')} a ${format(parseISO(dataFim), 'dd/MM/yyyy')}`;
     exportDespesasToPDF(despesas, title);
   };
 
@@ -304,7 +304,7 @@ export const RelatorioDespesas: React.FC = () => {
                             <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
                               {despesa.tipo === 'fixa'
                                 ? `Dia ${despesa.dia_vencimento}`
-                                : despesa.data && format(new Date(despesa.data), 'dd/MM/yyyy')}
+                                : despesa.data && format(parseISO(despesa.data), 'dd/MM/yyyy')}
                             </td>
                             <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                               {despesa.descricao}

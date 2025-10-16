@@ -18,7 +18,7 @@ import { DespesaForm } from '../components/despesas/DespesaForm';
 import { despesasService } from '../services/despesasService';
 import { exportDespesasToPDF, exportDespesasToExcel } from '../utils/exportUtils';
 import type { Despesa } from '../types';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 type TabType = 'fixas' | 'gerais';
@@ -229,7 +229,7 @@ export const Despesas: React.FC = () => {
   };
 
   const formatDate = (date: string) => {
-    return format(new Date(date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    return format(parseISO(date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
 
   const resumoAtivo = activeTab === 'fixas' ? resumo.fixas : resumo.gerais;
@@ -602,7 +602,7 @@ export const Despesas: React.FC = () => {
                         <div>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Data</p>
                           <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {despesa.data && format(new Date(despesa.data), 'dd/MM/yyyy')}
+                            {despesa.data && format(parseISO(despesa.data), 'dd/MM/yyyy')}
                           </p>
                         </div>
                       )}

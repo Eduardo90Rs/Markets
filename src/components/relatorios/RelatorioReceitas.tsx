@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileDown, FileSpreadsheet, Calendar, DollarSign } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { Button, Card, Select, Input } from '../ui';
 import { receitasService } from '../../services/receitasService';
 import { exportReceitasToPDF, exportReceitasToExcel } from '../../utils/exportUtils';
@@ -54,7 +54,7 @@ export const RelatorioReceitas: React.FC = () => {
       return;
     }
 
-    const title = `Relatório de Receitas - ${format(new Date(dataInicio), 'dd/MM/yyyy')} a ${format(new Date(dataFim), 'dd/MM/yyyy')}`;
+    const title = `Relatório de Receitas - ${format(parseISO(dataInicio), 'dd/MM/yyyy')} a ${format(parseISO(dataFim), 'dd/MM/yyyy')}`;
     exportReceitasToPDF(receitas, title);
   };
 
@@ -270,7 +270,7 @@ export const RelatorioReceitas: React.FC = () => {
                             className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                           >
                             <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
-                              {format(new Date(receita.data), 'dd/MM/yyyy')}
+                              {format(parseISO(receita.data), 'dd/MM/yyyy')}
                             </td>
                             <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                               {receita.descricao}

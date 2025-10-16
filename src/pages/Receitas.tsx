@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Filter, DollarSign, FileDown, FileSpreadsheet } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button, Card, Modal, Select, MonthYearPicker } from '../components/ui';
 import { ReceitaForm } from '../components/receitas/ReceitaForm';
@@ -406,7 +406,7 @@ export const Receitas: React.FC = () => {
                           {receita.descricao}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {format(new Date(receita.data), "dd 'de' MMMM 'de' yyyy", {
+                          {format(parseISO(receita.data), "dd 'de' MMMM 'de' yyyy", {
                             locale: ptBR,
                           })}
                         </p>
