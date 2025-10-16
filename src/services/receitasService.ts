@@ -20,6 +20,7 @@ export const receitasService = {
     data_inicio?: string;
     data_fim?: string;
     categoria?: string;
+    descricao?: string;
     status_recebimento?: 'recebido' | 'pendente';
   }): Promise<Receita[]> {
     let query = supabase.from('receitas').select('*');
@@ -32,6 +33,9 @@ export const receitasService = {
     }
     if (filters.categoria) {
       query = query.eq('categoria', filters.categoria);
+    }
+    if (filters.descricao) {
+      query = query.eq('descricao', filters.descricao);
     }
     if (filters.status_recebimento) {
       query = query.eq('status_recebimento', filters.status_recebimento);

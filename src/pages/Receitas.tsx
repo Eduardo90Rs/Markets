@@ -18,8 +18,10 @@ export const Receitas: React.FC = () => {
   // Filtros
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [filterCategoria, setFilterCategoria] = useState('');
+  const [filterDescricao, setFilterDescricao] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [descricoes, setDescricoes] = useState<string[]>([]);
 
   // Stats
   const [stats, setStats] = useState({
@@ -30,6 +32,20 @@ export const Receitas: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [selectedMonth]);
+
+  // Carregar descrições únicas
+  useEffect(() => {
+    const loadDescricoes = async () => {
+      try {
+        const descricoesData = await receitasService.getDescricoesUnicas();
+        setDescricoes(descricoesData);
+      } catch (error) {
+        console.error('Erro ao carregar descrições:', error);
+      }
+    };
+
+    loadDescricoes();
+  }, []);
 
   // Atualiza automaticamente o mês quando a data muda
   useEffect(() => {
@@ -73,6 +89,7 @@ export const Receitas: React.FC = () => {
         data_fim: format(endOfMonth(selectedMonth), 'yyyy-MM-dd'),
       };
       if (filterCategoria) filters.categoria = filterCategoria;
+      if (filterDescricao) filters.descricao = filterDescricao;
       if (filterStatus) filters.status_recebimento = filterStatus;
 
       const data = await receitasService.getWithFilters(filters);
@@ -86,6 +103,7 @@ export const Receitas: React.FC = () => {
 
   const clearFilters = () => {
     setFilterCategoria('');
+    setFilterDescricao('');
     setFilterStatus('');
     loadData();
   };
@@ -243,7 +261,7 @@ export const Receitas: React.FC = () => {
       {/* Filtros */}
       {showFilters && (
         <Card>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Select
               label="Categoria"
               options={[
@@ -252,6 +270,16 @@ export const Receitas: React.FC = () => {
               ]}
               value={filterCategoria}
               onChange={(e) => setFilterCategoria(e.target.value)}
+            />
+
+            <Select
+              label="Descrição"
+              options={[
+                { value: '', label: 'Todas' },
+                ...descricoes.map((desc) => ({ value: desc, label: desc })),
+              ]}
+              value={filterDescricao}
+              onChange={(e) => setFilterDescricao(e.target.value)}
             />
 
             <Select
